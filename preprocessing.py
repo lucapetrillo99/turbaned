@@ -50,7 +50,7 @@ def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False)
     if tweet_analysis:
         print('Cleaning text of tweets...')
         tweet_files = tweet.get_temp_window_files(temp_window)
-        tweet_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d%m%Y'))
+        tweet_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
         with ThreadPoolExecutor() as pool:
             for idx, file in enumerate(tweet_files):
                 for content in tqdm(tweet.import_local_tweets(file)):

@@ -32,23 +32,20 @@ if __name__ == '__main__':
         if args.daysAgo == 0 and args.monthsAgo == 0:
             start_date = current_date
         else:
-            start_date = (
-                        current_date - relativedelta(days=args.daysAgo, months=args.monthsAgo, year=current_date.year))
+            start_date = (current_date - relativedelta(days=args.daysAgo, months=args.monthsAgo,
+                                                       year=current_date.year))
         if not (os.path.exists('data')):
             try:
                 os.mkdir('data')
                 os.mkdir('data/cve')
                 os.mkdir('data/tweets')
                 os.mkdir('data/filtered_tweets')
-                os.mkdir('data/processed')
-                os.mkdir('data/processed')
-                os.mkdir('data/processed/tweet')
-                os.mkdir('data/processed/tweets_cve')
+                os.makedirs('data/processed/tweet')
+                os.makedirs('data/processed/tweets_cve')
                 os.mkdir('data/models')
                 os.mkdir('data/results')
             except FileExistsError:
                 pass
-
         analysis.start_analysis(start_date)
     else:
         exit(0)
