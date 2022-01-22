@@ -37,13 +37,15 @@ def get_tweets(initial_date):
 
 
 def collect_tweets(json_name, url):
-    try:
-        response = requests.get(url + '/' + json_name)
-        data = response.json()
-        f = open(TWEET_PATH + json_name, 'w')
-        json.dump(data, f)
-    except ConnectionError:
-        print("Connection error while getting tweets from database. Try later")
+    files = os.listdir(TWEET_PATH)
+    if json_name not in files:
+        try:
+            response = requests.get(url + '/' + json_name)
+            data = response.json()
+            f = open(TWEET_PATH + json_name, 'w')
+            json.dump(data, f)
+        except ConnectionError:
+            print("Connection error while getting tweets from database. Try later")
 
 
 def get_temp_window_files(start_date):
@@ -94,7 +96,7 @@ def import_filtered_tweets(start_date):
 
 
 def check_tweet_date(file_date, date):
-    return file_date >= date.strftime('%Y-%m-%d')
+    return file_date >= date.strftime('%d-%m-%Y')
 
 
 def check_filtered_tweets(start_date):

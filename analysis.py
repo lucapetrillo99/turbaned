@@ -4,7 +4,7 @@ import tweet
 import model
 import preprocessing
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
 CVE_PATH = 'data/cve/'
@@ -50,20 +50,22 @@ def get_tweets_from_cve(start_date):
     tweet_directory.sort()
     if len(tweet_directory) > 0:
         files = tweet.get_temp_window_files(start_date)
-        current_date = datetime.now()
-        if not tweet.check_date(files[0].split('.')[0], start_date) and not \
-                tweet.check_date(files[len(files) - 1].split('.')[0], current_date):
-            files = tweet.get_tweets(start_date)
-        elif not tweet.check_date(files[len(files) - 1].split('.')[0], current_date):
+        current_date = datetime.today() - timedelta(days=1)
+        if tweet.check_date(files[0].split('.')[0], start_date) is False and \
+                tweet.check_date(files[len(files) - 1].split('.')[0], current_date) is False:
+            tweet.get_tweets(start_date)
+            files = tweet.get_temp_window_files(start_date)
+        elif tweet.check_date(files[len(files) - 1].split('.')[0], current_date) is False:
             new_start_date = datetime.strptime(files[len(files) - 1].split('.')[0], '%d-%m-%Y')
-            files = tweet.get_tweets(new_start_date)
+            tweet.get_tweets(new_start_date)
+            files = tweet.get_temp_window_files(start_date)
         else:
-            tweet_directory = os.listdir(CVE_PATH)
+            tweet_directory = os.listdir(TWEET_PATH)
             tweet_directory.sort()
             files = tweet.get_temp_window_files(start_date)
     else:
         tweet.get_tweets(start_date)
-        tweet_directory = os.listdir(CVE_PATH)
+        tweet_directory = os.listdir(TWEET_PATH)
         tweet_directory.sort()
         files = tweet.get_temp_window_files(start_date)
 

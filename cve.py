@@ -1,8 +1,9 @@
+import os
 import time
 import pickle
 import requests
 
-
+from tqdm import tqdm
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
@@ -11,6 +12,11 @@ MINIMUM_SCORE = 6.9
 CVE_PATH = 'data/cve/'
 MAX_RESULTS = 2000
 MAX_DAYS_AGO = 120
+
+
+def check_cves(initial_date):
+    directory_files = os.listdir(CVE_PATH)
+    return len(directory_files) > 0
 
 
 def get_cves(initial_date):
