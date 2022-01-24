@@ -15,6 +15,11 @@ FILTERED_TWEET_PATH = 'data/filtered_tweets/'
 PROCESSED_TWEET_CVE = 'data/processed/tweets_cve/'
 PROCESSED_TWEET = 'data/processed/tweet/'
 
+PROCESSED_DATA_FOUND = 1
+NO_PROCESSED_DATA = -2
+NO_TWEETS_PROCESSED = 0
+NO_TWEETS_CVES_PROCESSED = -1
+
 
 def get_tweets(initial_date):
     print("Fetching tweets online...")
@@ -116,14 +121,15 @@ def check_processed_tweets(start_date):
     processed_tweets = os.listdir(PROCESSED_TWEET)
 
     if (len(processed_tweets_cve) > 0) and (len(processed_tweets) > 0):
-        if start_date.strftime('%d%m%Y') + '.json' in processed_tweets:
-            return 1
-    elif len(processed_tweets_cve) > 0:
-        return 0
-    elif len(processed_tweets) > 0 and start_date.strftime('%d%m%Y') + '.json' in processed_tweets:
-        return -1
+        if start_date.strftime('%d-%m-%Y') + '.json' in processed_tweets:
+            return PROCESSED_DATA_FOUND
+    elif len(processed_tweets_cve) > 0 and len(processed_tweets) == 0:
+        return NO_TWEETS_PROCESSED
+    elif len(processed_tweets) > 0 and len(processed_tweets_cve) == 0:
+        if start_date.strftime('%d-%m-%Y') + '.json' in processed_tweets:
+            return NO_TWEETS_CVES_PROCESSED
     else:
-        return 2
+        return NO_PROCESSED_DATA
 
 
 def export_processed_tweets(filename, processed_tweets, cve=None):
@@ -131,8 +137,8 @@ def export_processed_tweets(filename, processed_tweets, cve=None):
         with open(PROCESSED_TWEET_CVE + str(filename), "wb") as file:
             pickle.dump(processed_tweets, file)
     else:
-        f = open(PROCESSED_TWEET + str(filename), "a+")
-        json.dump(processed_tweets, f)
+        with open(PROCESSED_TWEET + str(filename), mode='w') as f:
+            f.write(json.dumps(processed_tweets))
 
 
 def import_processed_tweet_cve():

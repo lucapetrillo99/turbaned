@@ -10,20 +10,24 @@ from concurrent.futures import ThreadPoolExecutor
 CVE_PATH = 'data/cve/'
 TWEET_PATH = 'data/tweets/'
 FILTERED_TWEET_PATH = 'data/filtered_tweets/'
+PROCESSED_DATA_FOUND = 1
+NO_PROCESSED_DATA = -2
+NO_TWEETS_PROCESSED = 0
+NO_TWEETS_CVES_PROCESSED = -1
 
 
 def start_analysis(start_date):
     if tweet.check_filtered_tweets(start_date):
         result = tweet.check_processed_tweets(start_date)
-        if result == 1:
+        if result == PROCESSED_DATA_FOUND:
             tweet_cve = tweet.import_processed_tweet_cve()
             if model.check_model(tweet_cve):
                 model.find_similarity(tweet_cve, start_date)
             else:
                 model.create_model(tweet_cve)
-        elif result == 0:
+        elif result == NO_TWEETS_PROCESSED:
             preprocessing.preprocess_data(start_date, tweet_analysis=True)
-        elif result == -1:
+        elif result == NO_TWEETS_CVES_PROCESSED:
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True)
         else:
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
