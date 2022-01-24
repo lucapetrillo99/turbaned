@@ -79,11 +79,11 @@ def clean_text(text):
             processed_text = re.sub('[^a-zA-Z]', ' ', processed_text)
             processed_text = re.sub(r'\s+', ' ', processed_text)
             all_sentences = nltk.sent_tokenize(processed_text)
-
-            all_words = [nltk.word_tokenize(sent) for sent in all_sentences]
+            all_words += [nltk.word_tokenize(sent) for sent in all_sentences]
             stop_words = set(stopwords.words('english'))
             for i in range(len(all_words)):
                 all_words[i] = [w for w in all_words[i] if w not in stop_words]
+
     except LangDetectException:
         pass
 
