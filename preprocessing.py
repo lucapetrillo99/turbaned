@@ -32,7 +32,7 @@ def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False)
         print('Cleaning text of tweets with cve...')
         filtered_tweets = tweet.import_filtered_tweets(temp_window)
         for idx, filtered_tweet in enumerate(filtered_tweets):
-            for content in filtered_tweet['content']:
+            for content in tqdm(filtered_tweet['content']):
                 if idx == 0:
                     temp_id = content['id']
                 content['parsed_text'] = clean_text(content['text'])

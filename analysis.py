@@ -77,22 +77,23 @@ def get_tweets_from_cve(start_date):
         print("Analyzing cves in tweets...")
         tweets_cves = []
         with ThreadPoolExecutor() as pool:
-            for idx, (c, f) in enumerate(zip(cves, files)):
-                if idx == 0:
-                    prev_id = c['id']
-                for t in tweet.import_local_tweets(f):
-                    if pool.submit(check_cve, cve_id=c['id'], tweet_text=t['text']).result():
-                        tweets_cves.append(t)
-                if c['id'] != prev_id:
-                    print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
-                    if len(tweets_cves) > 0:
-                        tweet.export_filtered_tweets(prev_id, tweets_cves, start_date.strftime('%Y-%m-%d'))
-                        tweets_cves.clear()
-                    prev_id = c['id']
-                if idx == len(cves) - 1:
-                    print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
-                    if len(tweets_cves) > 0:
-                        tweet.export_filtered_tweets(c['id'], tweets_cves, start_date.strftime("%Y-%m-%d"))
+            for idx, c in enumerate(cves):
+                for f in files:
+                    if idx == 0:
+                        prev_id = c['id']
+                    for t in tweet.import_local_tweets(f):
+                        if pool.submit(check_cve, cve_id=c['id'], tweet_text=t['text']).result():
+                            tweets_cves.append(t)
+                    if c['id'] != prev_id:
+                        print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
+                        if len(tweets_cves) > 0:
+                            tweet.export_filtered_tweets(prev_id, tweets_cves, start_date.strftime('%d-%m-%Y'))
+                            tweets_cves.clear()
+                        prev_id = c['id']
+                    if idx == len(cves) - 1:
+                        print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
+                        if len(tweets_cves) > 0:
+                            tweet.export_filtered_tweets(c['id'], tweets_cves, start_date.strftime("%d-%m-%Y"))
 
         if tweet.check_filtered_tweets(start_date):
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)

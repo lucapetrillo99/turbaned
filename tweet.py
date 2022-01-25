@@ -5,11 +5,12 @@ import requests
 
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.rrule import rrule, MONTHLY
+from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor
 
-TWEET_URL = 'http://146.48.99.30:9999/'
+TWEET_URL = 'http://146.48.99.30:9898/data/'
 TWEET_PATH = 'data/tweets/'
 FILTERED_TWEET_PATH = 'data/filtered_tweets/'
 PROCESSED_TWEET_CVE = 'data/processed/tweets_cve/'
@@ -23,8 +24,8 @@ NO_TWEETS_CVES_PROCESSED = -1
 
 def get_tweets(initial_date):
     print("Fetching tweets online...")
-    current_date = datetime.now()
-    monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=current_date)]
+    current_date = datetime.today() - timedelta(days=1)
+    monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=current_date + relativedelta(months=1))]
     with ThreadPoolExecutor() as executor:
         for idx, date in enumerate(monthly_dates):
             monthly_tweet_url = TWEET_URL + date.strftime('%m-%Y')
@@ -32,7 +33,7 @@ def get_tweets(initial_date):
                 resp = requests.get(url=TWEET_URL + date.strftime('%m-%Y'))
                 soup = BeautifulSoup(resp.content, 'html.parser')
                 for element in tqdm(soup.select('li')):
-                    if idx == 0 or idx == len(monthly_dates):
+                    if idx == 0 :
                         if check_date(element.a['href'].split('.')[0], initial_date):
                             executor.submit(collect_tweets, element.a['href'], monthly_tweet_url)
                     else:
@@ -61,7 +62,7 @@ def get_temp_window_files(start_date):
 
 def check_date(filename, date):
     filename_to_date = datetime.strptime(filename, '%d-%m-%Y')
-    return filename_to_date.strftime('%Y-%m-%d') >= date.strftime('%Y-%m-%d')
+    return filename_to_date.strftime('%d-%m-%Y') >= date.strftime('%d-%m-%Y')
 
 
 def import_local_tweets(filename):
@@ -108,7 +109,7 @@ def check_filtered_tweets(start_date):
     directory_files = os.listdir(FILTERED_TWEET_PATH)
 
     if len(directory_files) > 0:
-        if start_date.strftime('%Y-%m-%d') in directory_files:
+        if start_date.strftime('%d-%m-%Y') in directory_files:
             return True
         else:
             return False
