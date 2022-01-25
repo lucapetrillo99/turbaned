@@ -22,9 +22,12 @@ def start_analysis(start_date):
         if result == PROCESSED_DATA_FOUND:
             tweet_cve = tweet.import_processed_tweet_cve()
             if model.check_model(tweet_cve):
-                model.find_similarity(tweet_cve, start_date)
+                if model.check_results(start_date):
+                    print("Results for {} are in data/results".format(start_date.strftime("%d-%m-%Y")))
+                else:
+                    model.find_similarity(start_date)
             else:
-                model.create_model(tweet_cve)
+                model.create_model()
         elif result == NO_TWEETS_PROCESSED:
             preprocessing.preprocess_data(start_date, tweet_analysis=True)
         elif result == NO_TWEETS_CVES_PROCESSED:
@@ -99,8 +102,8 @@ def get_tweets_from_cve(start_date):
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
             print('Creating model for cve...')
             tweet_cve = tweet.import_processed_tweet_cve()
-            model.create_model(tweet_cve)
-            model.find_similarity(tweet_cve, start_date)
+            model.create_model()
+            model.find_similarity(start_date)
         else:
             current_date = datetime.now()
             print('No cve founds in tweets from {} to {}'.format(start_date.strftime("%d-%m-%Y"),
