@@ -1,20 +1,21 @@
 import os
 import json
 import pickle
+import tarfile
+import subprocess
 import requests
 
-from bs4 import BeautifulSoup
-from tqdm import tqdm
 from datetime import datetime, timedelta
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor
 
-TWEET_URL = 'http://146.48.99.30:9898/data/'
+TWEET_URL = 'https://martellone.iit.cnr.it/index.php/s/godwgTnKeA2dxKi/download?path=%2F&files='
 TWEET_PATH = 'data/tweets/'
 FILTERED_TWEET_PATH = 'data/filtered_tweets/'
 PROCESSED_TWEET_CVE = 'data/processed/tweets_cve/'
 PROCESSED_TWEET = 'data/processed/tweet/'
+TEMP_TWEET = 'data/temp/'
 
 PROCESSED_DATA_FOUND = 1
 NO_PROCESSED_DATA = -2
@@ -23,33 +24,33 @@ NO_TWEETS_CVES_PROCESSED = -1
 
 
 def get_tweets(initial_date):
+    os.mkdir(TEMP_TWEET)
     print("Fetching tweets online...")
     current_date = datetime.today() - timedelta(days=1)
-    monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=current_date + relativedelta(months=1))]
+
+    if initial_date.month == current_date.month:
+        monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=current_date)]
+    else:
+        monthly_dates = [dt for dt in
+                         rrule(MONTHLY, dtstart=initial_date, until=current_date + relativedelta(months=1))]
     with ThreadPoolExecutor() as executor:
         for idx, date in enumerate(monthly_dates):
-            monthly_tweet_url = TWEET_URL + date.strftime('%m-%Y')
+            monthly_tweet_url = TWEET_URL + date.strftime('%m-%Y') + '.tar.gz'
             try:
-                resp = requests.get(url=TWEET_URL + date.strftime('%m-%Y'))
-                soup = BeautifulSoup(resp.content, 'html.parser')
-                for element in tqdm(soup.select('li')):
-                    if idx == 0 :
-                        if check_date(element.a['href'].split('.')[0], initial_date):
-                            executor.submit(collect_tweets, element.a['href'], monthly_tweet_url)
-                    else:
-                        executor.submit(collect_tweets, element.a['href'], monthly_tweet_url)
+                response = requests.get(monthly_tweet_url, stream=True)
+                if response.status_code == 200:
+                    executor.submit(collect_tweets(date.strftime('%m-%Y'), response))
             except ConnectionError:
                 print("Connection error while getting tweets from database. Try later")
 
 
-def collect_tweets(json_name, url):
+def collect_tweets(folder_name, response):
     files = os.listdir(TWEET_PATH)
-    if json_name not in files:
+    if folder_name not in files:
         try:
-            response = requests.get(url + '/' + json_name)
-            data = response.json()
-            f = open(TWEET_PATH + json_name, 'w')
-            json.dump(data, f)
+            file = tarfile.open(fileobj=response.raw, mode="r|gz")
+            file.extractall(path=TEMP_TWEET)
+            subprocess.call(['sh', './collect_tweets.sh'])
         except ConnectionError:
             print("Connection error while getting tweets from database. Try later")
 
