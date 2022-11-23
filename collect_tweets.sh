@@ -3,16 +3,19 @@
 WORKING_PATH=$(pwd)
 DATA_PATH='data/temp/tweeterCrawler/json_db/'
 
-cd $DATA_PATH
+cd $DATA_PATH || {
+  echo "Tweet folder does not exist"
+  exit 1
+}
 
-for i in * ; do
-    cd $i
+for i in *; do
+  cd "$i" || exit
 
-    for file in $(ls); do
-    mv $file $WORKING_PATH/data/tweets/
-    done
-    cd ..
+  for file in *; do
+    mv "$file" "$WORKING_PATH"/data/tweets/
+  done
+  cd ..
 done
 
-cd $WORKING_PATH
-rm -rf temp/
+cd "$WORKING_PATH" || exit
+rm -rf data/temp/
