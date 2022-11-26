@@ -5,6 +5,7 @@ import tarfile
 import subprocess
 import requests
 
+from tqdm import tqdm
 from datetime import datetime, timedelta
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
@@ -34,7 +35,7 @@ def get_tweets(initial_date):
         monthly_dates = [dt for dt in
                          rrule(MONTHLY, dtstart=initial_date, until=current_date + relativedelta(months=1))]
     with ThreadPoolExecutor() as executor:
-        for idx, date in enumerate(monthly_dates):
+        for idx, date in tqdm(enumerate(monthly_dates)):
             monthly_tweet_url = TWEET_URL + date.strftime('%m-%Y') + '.tar.gz'
             try:
                 response = requests.get(monthly_tweet_url, stream=True)

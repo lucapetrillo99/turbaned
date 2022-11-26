@@ -6,7 +6,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
-def valid_argument(argument):
+def check_valid_argument(argument):
     if argument.daysAgo < 0 and argument.monthsAgo < 0:
         print("ERROR! days and months have to be positive, exiting...")
         return False
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--monthsAgo", type=int, default=0, help="And analyzed CVE of X months ago")
     args = parser.parse_args()
 
-    if args is not None and valid_argument(args):
+    if args is not None and check_valid_argument(args):
         current_date = datetime.now()
         current_date = datetime(year=current_date.year, month=current_date.month, day=current_date.day)
         if args.daysAgo == 0 and args.monthsAgo == 0:
@@ -46,6 +46,8 @@ if __name__ == '__main__':
                 os.mkdir('data/results')
             except FileExistsError:
                 pass
+
+        print("Start analysis from: {}".format(start_date.strftime("%d-%m-%Y")))
         analysis.start_analysis(start_date)
     else:
         exit(0)

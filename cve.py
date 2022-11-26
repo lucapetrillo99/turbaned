@@ -14,7 +14,7 @@ MAX_RESULTS = 2000
 MAX_DAYS_AGO = 120
 
 
-def check_cves(initial_date):
+def check_cves():
     directory_files = os.listdir(CVE_PATH)
     return len(directory_files) > 0
 

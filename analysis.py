@@ -85,18 +85,20 @@ def get_tweets_from_cve(start_date):
                     if idx == 0:
                         prev_id = c['id']
                     for t in tweet.import_local_tweets(f):
-                        if pool.submit(check_cve, cve_id=c['id'], tweet_text=t['text']).result():
+                        if check_cve(c['id'], t['text']):
                             tweets_cves.append(t)
                     if c['id'] != prev_id:
                         print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
                         if len(tweets_cves) > 0:
-                            tweet.export_filtered_tweets(prev_id, tweets_cves, start_date.strftime('%d-%m-%Y'))
+                            pool.submit(tweet.export_filtered_tweets, filename=prev_id, filtered_tweets=tweets_cves,
+                                        path=start_date.strftime('%d-%m-%Y'))
                             tweets_cves.clear()
                         prev_id = c['id']
                     if idx == len(cves) - 1:
                         print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
                         if len(tweets_cves) > 0:
-                            tweet.export_filtered_tweets(c['id'], tweets_cves, start_date.strftime("%d-%m-%Y"))
+                            pool.submit(tweet.export_filtered_tweets(filename=prev_id, filtered_tweets=tweets_cves,
+                                                                     path=start_date.strftime('%d-%m-%Y')))
 
         if tweet.check_filtered_tweets(start_date):
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
