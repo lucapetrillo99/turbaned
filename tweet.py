@@ -71,7 +71,7 @@ def get_temp_window_tweets(start_date):
     return list(filter(lambda x: is_date_valid(x.split('.')[0], start_date, 0), tweets_directory))
 
 
-def check_date(filename, date):
+def is_date_valid(filename, date, operator):
     filename_to_date = datetime.strptime(filename, '%d-%m-%Y')
     if operator == 0:
         return filename_to_date.strftime('%d-%m-%Y') >= date.strftime('%d-%m-%Y')
@@ -111,10 +111,12 @@ def check_tweet_date(file_date, date):
 
 
 def check_filtered_tweets(start_date):
-    directory_files = os.listdir(FILTERED_TWEET_PATH)
+    filtered_tweets = os.listdir(FILTERED_TWEET_PATH)
+    filtered_tweets.sort()
     current_date = datetime.today() - timedelta(days=1)
-    if len(directory_files) > 0:
-        if start_date.strftime('%d-%m-%Y') in directory_files and current_date.strftime('%d-%m-%Y') in directory_files:
+    if len(filtered_tweets) > 0:
+        if is_date_valid(filtered_tweets[0], start_date, 0) and \
+                is_date_valid(filtered_tweets[len(filtered_tweets) - 1], current_date, 1):
             return True
         else:
             return False
