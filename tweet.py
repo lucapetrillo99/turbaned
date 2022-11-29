@@ -3,6 +3,8 @@ import json
 import pickle
 import tarfile
 import subprocess
+from operator import itemgetter
+
 import requests
 
 from tqdm import tqdm
@@ -59,18 +61,25 @@ def collect_tweets(folder_name, response):
 def get_temp_window_files(start_date):
     tweets_directory = os.listdir(TWEET_PATH)
     tweets_directory.sort()
-    return list(filter(lambda x: check_date(x.split('.')[0], start_date), tweets_directory))
+    return list(filter(lambda x: is_date_valid(x.split('.')[0], start_date, 0), tweets_directory))
 
 
+# TODO this is useless, can be incorporated in previous function
 def get_temp_window_tweets(start_date):
     tweets_directory = os.listdir(FILTERED_TWEET_PATH)
     tweets_directory.sort()
-    return list(filter(lambda x: check_date(x.split('.')[0], start_date), tweets_directory))
+    return list(filter(lambda x: is_date_valid(x.split('.')[0], start_date, 0), tweets_directory))
 
 
 def check_date(filename, date):
     filename_to_date = datetime.strptime(filename, '%d-%m-%Y')
-    return filename_to_date.strftime('%d-%m-%Y') >= date.strftime('%d-%m-%Y')
+    if operator == 0:
+        return filename_to_date.strftime('%d-%m-%Y') >= date.strftime('%d-%m-%Y')
+    elif operator == 1:
+        return filename_to_date.strftime('%d-%m-%Y') <= date.strftime('%d-%m-%Y')
+    elif operator == 2:
+        current_date = datetime.today() - timedelta(days=1)
+        return date.strftime('%d-%m-%Y') <= filename_to_date.strftime('%d-%m-%Y') <= current_date.strftime('%d-%m-%Y')
 
 
 def import_local_tweets(filename):
