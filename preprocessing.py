@@ -25,27 +25,18 @@ def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False)
 
     tweets_with_cve = []
     tweets = []
-    tweets_id = []
 
-    temp_id = None
     if tweet_cve_analysis:
         print('Cleaning text of tweets with cve...')
-        filtered_tweets = tweet.import_filtered_tweets(temp_window)
-        for idx, filtered_tweet in enumerate(filtered_tweets):
-            for content in tqdm(filtered_tweet['content']):
-                if idx == 0:
-                    temp_id = content['id']
+        tweet_cve_files = tweet.get_temp_window_tweets(temp_window)
+        tweet_cve_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
+        for idx, file in enumerate(tweet_cve_files):
+            for content in tqdm(tweet.import_filtered_tweets(file)):
                 content['parsed_text'] = clean_text(content['text'])
-                tweets_with_cve.append(content)
-                tweets_id.append(content['id'])
-                if filtered_tweet['id'] != temp_id:
-                    if len(tweets_with_cve) > 0:
-                        tweet.export_processed_tweets(filtered_tweet['id'], tweets_with_cve, cve=True)
-                        tweets_with_cve.clear()
-
-                if idx == len(filtered_tweets) - 1:
-                    if len(tweets_with_cve) > 0:
-                        tweet.export_processed_tweets(filtered_tweet['id'], tweets_with_cve, cve=True)
+                if len(content['parsed_text']) > 0:
+                    tweets_with_cve.append(content)
+            tweet.export_processed_tweets(tweet_cve_files[idx], tweets_with_cve, cve=True)
+            tweets_with_cve.clear()
 
     if tweet_analysis:
         print('Cleaning text of tweets...')
@@ -54,13 +45,12 @@ def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False)
         with ThreadPoolExecutor() as pool:
             for idx, file in enumerate(tweet_files):
                 for content in tqdm(tweet.import_local_tweets(file)):
-                    if content['id'] not in tweets_id:
-                        content['parsed_text'] = pool.submit(clean_text, content['text']).result()
-                        if len(content['parsed_text']) > 0:
-                            tweets.append(content)
-                        if len(tweets) > MAX_TWEET:
-                            tweet.export_processed_tweets(tweet_files[idx], tweets, cve=None)
-                            tweets.clear()
+                    content['parsed_text'] = pool.submit(clean_text, content['text']).result()
+                    if len(content['parsed_text']) > 0:
+                        tweets.append(content)
+                    if len(tweets) > 1:
+                        tweet.export_processed_tweets(tweet_files[idx], tweets, cve=None)
+                        tweets.clear()
 
 
 def clean_text(text):

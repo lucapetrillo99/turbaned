@@ -62,6 +62,12 @@ def get_temp_window_files(start_date):
     return list(filter(lambda x: check_date(x.split('.')[0], start_date), tweets_directory))
 
 
+def get_temp_window_tweets(start_date):
+    tweets_directory = os.listdir(FILTERED_TWEET_PATH)
+    tweets_directory.sort()
+    return list(filter(lambda x: check_date(x.split('.')[0], start_date), tweets_directory))
+
+
 def check_date(filename, date):
     filename_to_date = datetime.strptime(filename, '%d-%m-%Y')
     return filename_to_date.strftime('%d-%m-%Y') >= date.strftime('%d-%m-%Y')
@@ -72,35 +78,23 @@ def import_local_tweets(filename):
         return json.load(fp)
 
 
-def export_filtered_tweets(filename, filtered_tweets, path):
+def export_filtered_tweets(filename, filtered_tweets):
     files = os.listdir(FILTERED_TWEET_PATH)
-    if not os.path.exists(FILTERED_TWEET_PATH + path):
-        os.mkdir(FILTERED_TWEET_PATH + path)
 
     if filename not in files:
-        with open(FILTERED_TWEET_PATH + path + '/' + filename, "wb") as f:
+        with open(FILTERED_TWEET_PATH + filename, "wb") as f:
             pickle.dump(filtered_tweets, f)
     else:
-        with open(FILTERED_TWEET_PATH + path + '/' + filename, "rb") as f:
+        with open(FILTERED_TWEET_PATH + filename, "rb") as f:
             data = pickle.load(f)
             data += filtered_tweets
             file = open(FILTERED_TWEET_PATH + filename, "wb")
             pickle.dump(data, file)
 
 
-def import_filtered_tweets(start_date):
-    tweet_files = os.listdir(FILTERED_TWEET_PATH)
-    tweets = list(filter(lambda x: check_tweet_date(x, start_date), tweet_files))
-    tweets_cve = []
-    for t in tweets:
-        for f in os.listdir(FILTERED_TWEET_PATH + t):
-            element = {'id': f}
-            file = open(FILTERED_TWEET_PATH + t + '/' + f, 'rb')
-            data = pickle.load(file)
-            element['content'] = data
-            tweets_cve.append(element)
-
-    return tweets_cve
+def import_filtered_tweets(filename):
+    with open(FILTERED_TWEET_PATH + filename, 'rb') as file:
+        return pickle.load(file)
 
 
 def check_tweet_date(file_date, date):
@@ -109,9 +103,9 @@ def check_tweet_date(file_date, date):
 
 def check_filtered_tweets(start_date):
     directory_files = os.listdir(FILTERED_TWEET_PATH)
-
+    current_date = datetime.today() - timedelta(days=1)
     if len(directory_files) > 0:
-        if start_date.strftime('%d-%m-%Y') in directory_files:
+        if start_date.strftime('%d-%m-%Y') in directory_files and current_date.strftime('%d-%m-%Y') in directory_files:
             return True
         else:
             return False

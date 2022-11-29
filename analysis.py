@@ -89,21 +89,16 @@ def get_tweets_from_cve(start_date):
                             tweets_cves.append(t)
                     if c['id'] != prev_id:
                         print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
-                        if len(tweets_cves) > 0:
-                            pool.submit(tweet.export_filtered_tweets, filename=prev_id, filtered_tweets=tweets_cves,
-                                        path=start_date.strftime('%d-%m-%Y'))
-                            tweets_cves.clear()
                         prev_id = c['id']
-                    if idx == len(cves) - 1:
+                    elif idx == len(cves) - 1:
                         print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
-                        if len(tweets_cves) > 0:
-                            pool.submit(tweet.export_filtered_tweets(filename=prev_id, filtered_tweets=tweets_cves,
-                                                                     path=start_date.strftime('%d-%m-%Y')))
+                    if len(tweets_cves) > 0:
+                        pool.submit(tweet.export_filtered_tweets(filename=f.split(".")[0], filtered_tweets=tweets_cves))
+                        tweets_cves.clear()
 
         if tweet.check_filtered_tweets(start_date):
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
             print('Creating model for cve...')
-            tweet_cve = tweet.import_processed_tweet_cve()
             model.create_model()
             model.find_similarity(start_date)
         else:
