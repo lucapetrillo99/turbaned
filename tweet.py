@@ -96,9 +96,10 @@ def export_filtered_tweets(filename, filtered_tweets):
     else:
         with open(FILTERED_TWEET_PATH + filename, "rb") as f:
             data = pickle.load(f)
-            data += filtered_tweets
-            file = open(FILTERED_TWEET_PATH + filename, "wb")
-            pickle.dump(data, file)
+            if filtered_tweets[0]['id'] not in map(itemgetter('id'), data):
+                data += filtered_tweets
+                file = open(FILTERED_TWEET_PATH + filename, "wb")
+                pickle.dump(data, file)
 
 
 def import_filtered_tweets(filename):
