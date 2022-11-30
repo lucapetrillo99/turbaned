@@ -167,3 +167,29 @@ def import_processed_tweet(start_date):
 def import_processed_tweet_content(filename):
     with open(PROCESSED_TWEET + filename) as f:
         return json.load(f)
+
+
+def reorder_tweets(tweets_found):
+    res = {}
+    for tweet in tweets_found:
+        for indexes in tweet:
+            if indexes in res:
+                res[indexes] += (tweet[indexes])
+            else:
+                res[indexes] = tweet[indexes]
+    return res
+
+
+def remove_tweets_with_cve(tweets):
+    print("Removing found tweets...")
+    for filename, tweet_indexes in tqdm(reorder_tweets(tweets).items()):
+        print(filename)
+        tweet_indexes = sorted(tweet_indexes, reverse=True)
+        file = open(TWEET_PATH + filename, "r")
+        data = json.load(file)
+        for index in tweet_indexes:
+            if index < len(data):
+                data.pop(index)
+
+        with open(TWEET_PATH + filename, "w") as f:
+            f.write(json.dumps(data))

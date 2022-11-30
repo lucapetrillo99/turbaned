@@ -58,11 +58,12 @@ def get_tweets_from_cve(start_date):
     if len(tweet_directory) > 0:
         files = tweet.get_temp_window_files(start_date)
         current_date = datetime.today() - timedelta(days=1)
-        if tweet.check_date(files[0].split('.')[0], start_date) is False and \
-                tweet.check_date(files[len(files) - 1].split('.')[0], current_date) is False:
+        # TODO check this control
+        if tweet.is_date_valid(files[0].split('.')[0], start_date, 0) is False and \
+                tweet.is_date_valid(files[len(files) - 1].split('.')[0], current_date, 0) is False:
             tweet.get_tweets(start_date)
             files = tweet.get_temp_window_files(start_date)
-        elif tweet.check_date(files[len(files) - 1].split('.')[0], current_date) is False:
+        elif tweet.is_date_valid(files[len(files) - 1].split('.')[0], current_date, 0) is False:
             new_start_date = datetime.strptime(files[len(files) - 1].split('.')[0], '%d-%m-%Y')
             tweet.get_tweets(new_start_date)
             files = tweet.get_temp_window_files(start_date)
@@ -75,28 +76,27 @@ def get_tweets_from_cve(start_date):
         tweet_directory = os.listdir(TWEET_PATH)
         tweet_directory.sort()
         files = tweet.get_temp_window_files(start_date)
-
     if len(files) > 0:
         print("Analyzing cves in tweets...")
         tweets_cves = []
+        tweets_found = []
+        tweets_indexes = []
         with ThreadPoolExecutor() as pool:
-            for idx, c in enumerate(cves):
+            for c in cves:
                 for f in files:
-                    if idx == 0:
-                        prev_id = c['id']
-                    for t in tweet.import_local_tweets(f):
+                    for index, t in enumerate(tweet.import_local_tweets(f)):
                         if check_cve(c['id'], t['text']):
+                            tweets_indexes.append(index)
                             tweets_cves.append(t)
-                    if c['id'] != prev_id:
-                        print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
-                        prev_id = c['id']
-                    elif idx == len(cves) - 1:
-                        print('Found {} tweets with {}'.format(len(tweets_cves), prev_id))
+                    if len(tweets_indexes) > 0:
+                        tweets_found.append({f: tweets_indexes})
+                        tweets_indexes = []
                     if len(tweets_cves) > 0:
                         pool.submit(tweet.export_filtered_tweets(filename=f.split(".")[0], filtered_tweets=tweets_cves))
-                        tweets_cves.clear()
+                        tweets_cves = []
 
-        if tweet.check_filtered_tweets(start_date):
+        if len(tweets_found) > 0:
+            tweet.remove_tweets_with_cve(tweets_found)
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
             print('Creating model for cve...')
             model.create_model()
