@@ -46,14 +46,19 @@ def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False)
         tweet_files = tweet.get_temp_window_files(temp_window)
         tweet_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
         with ThreadPoolExecutor() as pool:
-            for idx, file in enumerate(tweet_files):
-                for content in tqdm(tweet.import_local_tweets(file)):
-                    content['parsed_text'] = pool.submit(clean_text, content['text']).result()
-                    if len(content['parsed_text']) > 0:
-                        tweets.append(content)
-                    if len(tweets) > 1:
-                        tweet.export_processed_tweets(tweet_files[idx], tweets, cve=None)
-                        tweets.clear()
+            for file in tweet_files:
+                for index, content in enumerate(tqdm(tweet.import_local_tweets(file))):
+                    actual_tweet = {'index': index,
+                                    'id': content['id'],
+                                    'parsed_text': pool.submit(clean_text, content['text']).result()}
+                    if len(actual_tweet['parsed_text']) > 0:
+                        tweets.append(actual_tweet)
+                    if len(tweets) > MAX_TWEET:
+                        tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
+                        tweets = []
+                if len(tweets) > 0:
+                    tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
+                    tweets = []
 
 
 def clean_text(text):

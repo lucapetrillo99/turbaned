@@ -146,8 +146,8 @@ def export_processed_tweets(filename, processed_tweets, cve=None):
         with open(PROCESSED_TWEET_CVE + str(filename), "wb") as file:
             pickle.dump(processed_tweets, file)
     else:
-        with open(PROCESSED_TWEET + str(filename), mode='w') as f:
-            f.write(json.dumps(processed_tweets))
+        with open(PROCESSED_TWEET + str(filename), mode='wb') as f:
+            pickle.dump(processed_tweets, f)
 
 
 def import_processed_tweet_cve():
