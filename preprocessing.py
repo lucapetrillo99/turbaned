@@ -5,18 +5,21 @@ import tweet
 from tqdm import tqdm
 from datetime import datetime
 from nltk.corpus import stopwords
+from nltk.tokenize import TweetTokenizer
 from concurrent.futures import ThreadPoolExecutor
 from langdetect import detect, LangDetectException
 
 MAX_TWEET = 1000
 URL_REGEX = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+lemmatizer = nltk.stem.WordNetLemmatizer()
+w_tokenizer = TweetTokenizer()
 
 
 def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False):
     try:
-        nltk.data.find('tokenizers/punkt')
+        nltk.find('corpora/wordnet')
     except LookupError:
-        nltk.download('punkt')
+        nltk.download('wordnet')
 
     try:
         nltk.data.find('corpora/stopwords')
@@ -60,20 +63,22 @@ def clean_text(text):
         if language == 'en':
             processed_text = text.lower()
 
-            # check if tweet's text contain a url and removes it
-            urls = re.findall(URL_REGEX, processed_text)
-            if len(urls) > 0:
-                temp = [word for word in processed_text.split() if word not in urls]
-                processed_text = ' '.join(temp)
+            # remove the url present in the text
+            processed_text = re.sub(URL_REGEX, '', processed_text)
+
+            # remove mentions of Twitter accounts (eg. @username)
+            processed_text = re.sub(r'@\w+', '', processed_text)
 
             processed_text = re.sub('[^a-zA-Z]', ' ', processed_text)
             processed_text = re.sub(r'\s+', ' ', processed_text)
-            all_sentences = nltk.sent_tokenize(processed_text)
-            all_words += [nltk.word_tokenize(sent) for sent in all_sentences]
-            stop_words = set(stopwords.words('english'))
-            for i in range(len(all_words)):
-                all_words[i] = [w for w in all_words[i] if w not in stop_words]
 
+            # remove duplicate consecutive words
+            processed_text = re.sub(r'\b(\w+)( \1\b)+', r'\1', processed_text)
+            all_words = [word for word in [(lemmatizer.lemmatize(w)) for w in w_tokenizer.tokenize(processed_text)]]
+            stop_words = set(stopwords.words('english'))
+            for i, word in enumerate(all_words):
+                if word not in stop_words:
+                    all_words[i] = word
     except LangDetectException:
         pass
 
