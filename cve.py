@@ -1,10 +1,10 @@
 import os
-import time
 import pickle
-import requests
+import nvdlib
+from requests import HTTPError
 
 from tqdm import tqdm
-from datetime import datetime, timedelta
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
 NVD_URL = 'https://services.nvd.nist.gov/rest/json/cves/1.0/?'
@@ -19,84 +19,29 @@ def check_cves():
     return len(directory_files) > 0
 
 
-def get_cves(initial_date):
-    current_date = datetime.now()
-    days_ago = (current_date - initial_date).days
-
-    # fetch cves from NVD API in chuck of 120 days
-    index = 0
-    end_date = None
-    if days_ago > MAX_DAYS_AGO:
-        while days_ago > 0:
-            if index == 0:
-                end_date = initial_date + timedelta(days=MAX_DAYS_AGO)
-                days_ago = days_ago - MAX_DAYS_AGO
-                index += 1
-                retrieve_cves(initial_date, end_date)
-            else:
-
-                if days_ago > MAX_DAYS_AGO:
-                    start_date = end_date
-                    end_date = start_date + timedelta(days=MAX_DAYS_AGO)
-                    days_ago = days_ago - MAX_DAYS_AGO
-                    retrieve_cves(start_date, end_date)
-                else:
-                    start_date = end_date
-                    end_date = start_date + timedelta(days=days_ago)
-                    days_ago = 0
-                    retrieve_cves(start_date, end_date)
-    else:
-        retrieve_cves(initial_date, current_date)
-
-
-def retrieve_cves(start_date, end_date):
+def retrieve_cves(cves):
     print("Fetching cves online...")
-    pub_start_date, pub_end_date = create_date(start_date, end_date)
-    starting_index = 0
-    remaining_cve = 1
-
-    # fetch cves from NVD API in slot of max 2000 cves
+    files = os.listdir(CVE_PATH)
     with ThreadPoolExecutor() as executor:
-        while remaining_cve > 0:
-            params = dict(
-                pubStartDate=pub_start_date,
-                pubEndDate=pub_end_date,
-                resultsPerPage=MAX_RESULTS,
-                startIndex=starting_index
-            )
-
-            try:
-                resp = requests.get(url=NVD_URL, params=params)
-                data = resp.json()
-                executor.submit(collect_cves, data)
-
-                if starting_index == 0:
-                    total_results = data['totalResults']
-                    remaining_cve = total_results
-
-                if remaining_cve <= MAX_RESULTS:
-                    break
-                else:
-                    starting_index = starting_index + MAX_RESULTS
-                    remaining_cve = remaining_cve - MAX_RESULTS
-
-            except ConnectionError:
-                print("Connection error while getting cve from database")
-                break
+        for cve_id in tqdm(cves):
+            if cve_id not in files:
+                try:
+                    cve = nvdlib.searchCVE(cveId=cve_id)[0]
+                    if len(cve.score) > 1:
+                        if cve.score[1] > MINIMUM_SCORE:
+                            executor.submit(collect_cve, cve)
+                except HTTPError:
+                    pass
 
 
-def collect_cves(cve_result):
-    for idx, element in tqdm(enumerate(cve_result['result']['CVE_Items'])):
-        cve = {'id': element['cve']['CVE_data_meta']['ID'], 'published_date': element['publishedDate'][:10],
-               'description': element['cve']['description']['description_data'][0]['value']}
+def collect_cve(cve_result):
+    cve = {'id': cve_result.id, 'published_date': cve_result.published, 'score': cve_result.score[1]}
+    for des in cve_result.descriptions:
+        if des.lang == 'en':
+            cve['description'] = des.value
 
-        if element['impact']:
-            score = element['impact']['baseMetricV3']['cvssV3']['baseScore']
-            if score > MINIMUM_SCORE:
-                cve['score'] = score
-
-        f = open(CVE_PATH + cve['id'], 'wb')
-        pickle.dump(cve, f)
+    f = open(CVE_PATH + cve_result.id, 'wb')
+    pickle.dump(cve, f)
 
 
 def import_local_cves(cve_files):
@@ -110,11 +55,11 @@ def import_local_cves(cve_files):
     return cves
 
 
-def create_date(begin, end):
-    # build date for NVD API in format YYYY-MM-DDTHH:MM:SS:000 UTC-HH:MM
-    start_date = begin.strftime('%Y-%m-%d')
-    start_time = begin.strftime('%H:%M:%S') + ':000'
-    utc = 'UTC' + time.strftime("%z")[:3] + ':' + time.strftime("%z")[-2:]
-    end_date = end.strftime("%Y-%m-%d")
-    end_time = str(end.strftime("%H:%M:%S:%f"))[:-3]
-    return start_date + 'T' + start_time + ' ' + utc, end_date + 'T' + end_time + ' ' + utc
+# Method for constructing a regex to find a format of the type CVE-YEAR-ID (e.g., CVE-2022-1536) in tweets.
+# Constructs a regex in which the maximum year is never greater than the actual year.
+def build_regex():
+    actual_year = [*datetime.now().strftime("%Y")]
+    cve_regex = r"CVE[\-—–]"
+    date_range_regex = r"(?:1999|2[0-{}][0-{}][0-{}])".format(actual_year[1], actual_year[2], actual_year[3])
+    id_regex = r"[\-—–][0-9]{4,}"
+    return cve_regex + date_range_regex + id_regex
