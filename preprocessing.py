@@ -79,7 +79,7 @@ def clean_text(text):
 
             # remove duplicate consecutive words
             processed_text = re.sub(r'\b(\w+)( \1\b)+', r'\1', processed_text)
-            all_words = [word for word in [(lemmatizer.lemmatize(w)) for w in w_tokenizer.tokenize(processed_text)]]
+            all_words = [word for word in w_tokenizer.tokenize(processed_text)]
             stop_words = set(stopwords.words('english'))
             for i, word in enumerate(all_words):
                 if word not in stop_words:

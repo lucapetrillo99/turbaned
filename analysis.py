@@ -1,4 +1,5 @@
 import os
+import re
 import cve
 import tweet
 import model
@@ -38,21 +39,7 @@ def start_analysis(start_date):
         get_tweets_from_cve(start_date)
 
 
-def check_cve(cve_id, tweet_text):
-    return cve_id.lower() in tweet_text.lower()
-
-
 def get_tweets_from_cve(start_date):
-    cves_directory = os.listdir(CVE_PATH)
-    cves_directory.sort()
-    if len(cves_directory) > 0:
-        cves = cve.import_local_cves(cves_directory)
-    else:
-        cve.get_cves(start_date)
-        cves_directory = os.listdir(CVE_PATH)
-        cves_directory.sort()
-        cves = cve.import_local_cves(cves_directory)
-
     tweet_directory = os.listdir(TWEET_PATH)
     tweet_directory.sort()
     if len(tweet_directory) > 0:
@@ -81,20 +68,24 @@ def get_tweets_from_cve(start_date):
         tweets_cves = []
         tweets_found = []
         tweets_indexes = []
+        cves = []
+        cve_regex = cve.build_regex()
         with ThreadPoolExecutor() as pool:
-            for c in cves:
-                for f in files:
-                    for index, t in enumerate(tweet.import_local_tweets(f)):
-                        if check_cve(c['id'], t['text']):
-                            tweets_indexes.append(index)
-                            tweets_cves.append(t)
-                    if len(tweets_indexes) > 0:
-                        tweets_found.append({f: tweets_indexes})
-                        tweets_indexes = []
-                    if len(tweets_cves) > 0:
-                        pool.submit(tweet.export_filtered_tweets(filename=f.split(".")[0], filtered_tweets=tweets_cves))
-                        tweets_cves = []
-
+            for f in files:
+                for index, t in enumerate(tweet.import_local_tweets(f)):
+                    result = re.findall(cve_regex, t['text'], re.I)
+                    if len(result) > 0:
+                        result = list(set(result))
+                        cves += result
+                        result.clear()
+                        tweets_indexes.append(index)
+                        tweets_cves.append(t)
+                if len(tweets_indexes) > 0:
+                    tweets_found.append({f: tweets_indexes})
+                    tweets_indexes = []
+                if len(tweets_cves) > 0:
+                    pool.submit(tweet.export_filtered_tweets(filename=f.split(".")[0], filtered_tweets=tweets_cves))
+                    tweets_cves = []
         if len(tweets_found) > 0:
             tweet.remove_tweets_with_cve(tweets_found)
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
