@@ -1,6 +1,7 @@
 import re
 import nltk
 import tweet
+import gensim
 
 from tqdm import tqdm
 from datetime import datetime
@@ -35,7 +36,7 @@ def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False)
         tweet_cve_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
         for idx, file in enumerate(tweet_cve_files):
             for content in tqdm(tweet.import_filtered_tweets(file)):
-                content['parsed_text'] = clean_text(content['text'])
+                content['parsed_text'] = clean_tweet_text(content['text'])
                 if len(content['parsed_text']) > 0:
                     tweets_with_cve.append(content)
             tweet.export_processed_tweets(tweet_cve_files[idx], tweets_with_cve, cve=True)
@@ -50,7 +51,7 @@ def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False)
                 for index, content in enumerate(tqdm(tweet.import_local_tweets(file))):
                     actual_tweet = {'index': index,
                                     'id': content['id'],
-                                    'parsed_text': pool.submit(clean_text, content['text']).result()}
+                                    'parsed_text': pool.submit(clean_tweet_text, content['text']).result()}
                     if len(actual_tweet['parsed_text']) > 0:
                         tweets.append(actual_tweet)
                     if len(tweets) > MAX_TWEET:
@@ -61,7 +62,7 @@ def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False)
                     tweets = []
 
 
-def clean_text(text):
+def clean_tweet_text(text):
     all_words = []
     try:
         language = detect(text)
@@ -88,3 +89,8 @@ def clean_text(text):
         pass
 
     return all_words
+
+
+def clean_cve_text(text):
+    words = gensim.utils.simple_preprocess(text)
+    return sorted(set(words), key=words.index)
