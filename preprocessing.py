@@ -16,50 +16,56 @@ lemmatizer = nltk.stem.WordNetLemmatizer()
 w_tokenizer = TweetTokenizer()
 
 
-def preprocess_data(temp_window, tweet_cve_analysis=False, tweet_analysis=False):
+def preprocess_data(start_date, tweet_cve_analysis=False, tweet_analysis=False):
     try:
         nltk.find('corpora/wordnet')
     except LookupError:
         nltk.download('wordnet')
-
     try:
         nltk.data.find('corpora/stopwords')
     except LookupError:
         nltk.download('stopwords')
 
-    tweets_with_cve = []
-    tweets = []
-
     if tweet_cve_analysis:
-        print('Cleaning text of tweets with cve...')
-        tweet_cve_files = tweet.get_temp_window_tweets(temp_window)
-        tweet_cve_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
+        preprocess_tweets_cve(start_date)
+    if tweet_analysis:
+        preprocess_tweets(start_date)
+
+
+def preprocess_tweets_cve(start_date):
+    print('Cleaning text of tweets with cve...')
+    tweets_with_cve = []
+    tweet_cve_files = tweet.get_temp_window_tweets(start_date)
+    tweet_cve_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
+    with ThreadPoolExecutor() as pool:
         for idx, file in enumerate(tweet_cve_files):
             for content in tqdm(tweet.import_filtered_tweets(file)):
-                content['parsed_text'] = clean_tweet_text(content['text'])
+                content['parsed_text'] = pool.submit(clean_tweet_text, content['text']).result()
                 if len(content['parsed_text']) > 0:
                     tweets_with_cve.append(content)
             tweet.export_processed_tweets(tweet_cve_files[idx], tweets_with_cve, cve=True)
-            tweets_with_cve.clear()
+            tweets_with_cve = []
 
-    if tweet_analysis:
-        print('Cleaning text of tweets...')
-        tweet_files = tweet.get_temp_window_files(temp_window)
-        tweet_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
-        with ThreadPoolExecutor() as pool:
-            for file in tweet_files:
-                for index, content in enumerate(tqdm(tweet.import_local_tweets(file))):
-                    actual_tweet = {'index': index,
-                                    'id': content['id'],
-                                    'parsed_text': pool.submit(clean_tweet_text, content['text']).result()}
-                    if len(actual_tweet['parsed_text']) > 0:
-                        tweets.append(actual_tweet)
-                    if len(tweets) > MAX_TWEET:
-                        tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
-                        tweets = []
-                if len(tweets) > 0:
+
+def preprocess_tweets(start_date):
+    print('Cleaning text of tweets...')
+    tweets = []
+    tweet_files = tweet.get_temp_window_files(start_date)
+    tweet_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
+    with ThreadPoolExecutor() as pool:
+        for file in tweet_files:
+            for index, content in enumerate(tqdm(tweet.import_local_tweets(file))):
+                actual_tweet = {'index': index,
+                                'id': content['id'],
+                                'parsed_text': pool.submit(clean_tweet_text, content['text']).result()}
+                if len(actual_tweet['parsed_text']) > 0:
+                    tweets.append(actual_tweet)
+                if len(tweets) > MAX_TWEET:
                     tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
                     tweets = []
+            if len(tweets) > 0:
+                tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
+                tweets = []
 
 
 def clean_tweet_text(text):
