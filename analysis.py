@@ -89,7 +89,7 @@ def get_tweets_from_cve(start_date):
         if len(tweets_found) > 0:
             tweet.remove_tweets_with_cve(tweets_found)
             cve.retrieve_cves(cves)
-            preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
+            preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True, cve_analysis=True)
             print('Creating model for cve...')
             model.create_model()
             model.find_similarity(start_date)

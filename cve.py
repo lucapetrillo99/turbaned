@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 NVD_URL = 'https://services.nvd.nist.gov/rest/json/cves/1.0/?'
 MINIMUM_SCORE = 6.9
 CVE_PATH = 'data/cve/'
+PROCESSED_CVE_PATH = 'data/processed/cve/'
 MAX_RESULTS = 2000
 MAX_DAYS_AGO = 120
 
@@ -44,15 +45,14 @@ def collect_cve(cve_result):
     pickle.dump(cve, f)
 
 
-def import_local_cves(cve_files):
-    print("Importing cves...")
-    cve_files.sort()
-    cves = []
-    for cve in tqdm(cve_files):
-        f = open(CVE_PATH + cve, 'rb')
-        cves.append(pickle.load(f))
+def import_local_cve(filename):
+    f = open(CVE_PATH + filename, 'rb')
+    return pickle.load(f)
 
-    return cves
+
+def export_processed_cve(filename, cve):
+    with open(PROCESSED_CVE_PATH + filename, mode='wb') as f:
+        pickle.dump(cve, f)
 
 
 # Method for constructing a regex to find a format of the type CVE-YEAR-ID (e.g., CVE-2022-1536) in tweets.

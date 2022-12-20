@@ -1,4 +1,6 @@
+import os
 import re
+import cve
 import nltk
 import tweet
 import gensim
@@ -12,11 +14,12 @@ from langdetect import detect, LangDetectException
 
 MAX_TWEET = 1000
 URL_REGEX = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+CVE_PATH = 'data/cve/'
 lemmatizer = nltk.stem.WordNetLemmatizer()
 w_tokenizer = TweetTokenizer()
 
 
-def preprocess_data(start_date, tweet_cve_analysis=False, tweet_analysis=False):
+def preprocess_data(start_date, tweet_cve_analysis=False, tweet_analysis=False, cve_analysis=False):
     try:
         nltk.find('corpora/wordnet')
     except LookupError:
@@ -30,6 +33,8 @@ def preprocess_data(start_date, tweet_cve_analysis=False, tweet_analysis=False):
         preprocess_tweets_cve(start_date)
     if tweet_analysis:
         preprocess_tweets(start_date)
+    if cve_analysis:
+        preprocess_cves()
 
 
 def preprocess_tweets_cve(start_date):
@@ -66,6 +71,16 @@ def preprocess_tweets(start_date):
             if len(tweets) > 0:
                 tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
                 tweets = []
+
+
+def preprocess_cves():
+    cve_files = os.listdir(CVE_PATH)
+    with ThreadPoolExecutor() as pool:
+        for file in cve_files:
+            content = cve.import_local_cve(file)
+            content['parsed_text'] = pool.submit(clean_cve_text, content['description']).result()
+            print(content)
+            cve.export_processed_cve(content['id'], content)
 
 
 def clean_tweet_text(text):
