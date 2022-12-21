@@ -33,6 +33,8 @@ def retrieve_cves(cves):
                             executor.submit(collect_cve, cve)
                 except HTTPError:
                     pass
+                except AttributeError:
+                    pass
 
 
 def collect_cve(cve_result):

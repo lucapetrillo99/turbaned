@@ -7,7 +7,6 @@ import gensim
 
 from tqdm import tqdm
 from datetime import datetime
-from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
 from concurrent.futures import ThreadPoolExecutor
 from langdetect import detect, LangDetectException
@@ -17,18 +16,10 @@ URL_REGEX = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-f
 CVE_PATH = 'data/cve/'
 lemmatizer = nltk.stem.WordNetLemmatizer()
 w_tokenizer = TweetTokenizer()
+cve_regex = cve.build_regex()
 
 
 def preprocess_data(start_date, tweet_cve_analysis=False, tweet_analysis=False, cve_analysis=False):
-    try:
-        nltk.find('corpora/wordnet')
-    except LookupError:
-        nltk.download('wordnet')
-    try:
-        nltk.data.find('corpora/stopwords')
-    except LookupError:
-        nltk.download('stopwords')
-
     if tweet_cve_analysis:
         preprocess_tweets_cve(start_date)
     if tweet_analysis:
@@ -79,39 +70,43 @@ def preprocess_cves():
         for file in cve_files:
             content = cve.import_local_cve(file)
             content['parsed_text'] = pool.submit(clean_cve_text, content['description']).result()
-            print(content)
             cve.export_processed_cve(content['id'], content)
 
 
 def clean_tweet_text(text):
-    all_words = []
+    final_words = []
     try:
         language = detect(text)
         if language == 'en':
-            processed_text = text.lower()
 
             # remove the url present in the text
-            processed_text = re.sub(URL_REGEX, '', processed_text)
+            text = re.sub(URL_REGEX, '', text)
 
             # remove mentions of Twitter accounts (eg. @username)
-            processed_text = re.sub(r'@\w+', '', processed_text)
+            text = re.sub(r'@\w+', '', text)
 
-            processed_text = re.sub('[^a-zA-Z]', ' ', processed_text)
-            processed_text = re.sub(r'\s+', ' ', processed_text)
+            text = re.sub(cve_regex, '', text)
+            text = re.sub('[^a-zA-Z]', ' ', text)
+            text = re.sub(r'\s+', ' ', text)
 
             # remove duplicate consecutive words
-            processed_text = re.sub(r'\b(\w+)( \1\b)+', r'\1', processed_text)
-            all_words = [word for word in w_tokenizer.tokenize(processed_text)]
-            stop_words = set(stopwords.words('english'))
-            for i, word in enumerate(all_words):
-                if word not in stop_words:
-                    all_words[i] = word
+            text = re.sub(r'\b(\w+)( \1\b)+', r'\1', text)
+
+            final_words = gensim.utils.simple_preprocess(text)
+
     except LangDetectException:
         pass
 
-    return all_words
+    return final_words
 
 
 def clean_cve_text(text):
-    words = gensim.utils.simple_preprocess(text)
-    return sorted(set(words), key=words.index)
+    new_text = ""
+    for w in gensim.utils.simple_preprocess(text):
+        new_text += w + " "
+
+    # remove duplicate consecutive words
+    new_text = re.sub(r'\b(\w+)( \1\b)+', r'\1', new_text)
+    return [word for word in w_tokenizer.tokenize(new_text)]
+
+
