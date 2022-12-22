@@ -3,7 +3,7 @@ import config
 import argparse
 import analysis
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 
@@ -62,11 +62,11 @@ def start_script(start, end):
             pass
 
     if end is None:
-        end = current_date
+        end = current_date - timedelta(days=1)
 
     print(
         "Start analysis from: {0} to {1}".format(start.strftime(config.DATE_FORMAT), end.strftime(config.DATE_FORMAT)))
-    analysis.start_analysis(start_date)
+    analysis.start_analysis(start_date, end)
 
 
 if __name__ == '__main__':
