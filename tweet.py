@@ -1,14 +1,14 @@
 import os
 import json
 import pickle
+import config
 import tarfile
-import subprocess
-from operator import itemgetter
-
 import requests
+import subprocess
 
 from tqdm import tqdm
-from datetime import datetime, timedelta
+from datetime import datetime
+from operator import itemgetter
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor
@@ -26,16 +26,23 @@ NO_TWEETS_PROCESSED = 0
 NO_TWEETS_CVES_PROCESSED = -1
 
 
-def get_tweets(initial_date):
-    os.mkdir(TEMP_TWEET)
+def get_tweets(initial_date, final_date):
     print("Fetching tweets online...")
-    current_date = datetime.today() - timedelta(days=1)
+    try:
+        os.mkdir(TEMP_TWEET)
+    except FileExistsError:
+        pass
 
-    if initial_date.month == current_date.month:
-        monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=current_date)]
+    if type(initial_date) is str:
+        initial_date = datetime.strptime(initial_date, config.DATE_FORMAT)
+    if type(final_date) is str:
+        final_date = datetime.strptime(final_date, config.DATE_FORMAT)
+
+    if initial_date.month == final_date.month:
+        monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=final_date)]
     else:
         monthly_dates = [dt for dt in
-                         rrule(MONTHLY, dtstart=initial_date, until=current_date + relativedelta(months=1))]
+                         rrule(MONTHLY, dtstart=initial_date, until=final_date + relativedelta(months=1))]
     with ThreadPoolExecutor() as executor:
         for idx, date in tqdm(enumerate(monthly_dates)):
             monthly_tweet_url = TWEET_URL + date.strftime('%m-%Y') + '.tar.gz'
@@ -58,10 +65,11 @@ def collect_tweets(folder_name, response):
             print("Connection error while getting tweets from database. Try later")
 
 
-def get_temp_window_files(start_date):
+def get_temp_window_files(start_date, end_date):
     tweets_directory = os.listdir(TWEET_PATH)
     tweets_directory.sort()
-    return list(filter(lambda x: is_date_valid(x.split('.')[0], start_date, 0), tweets_directory))
+    return list(filter(lambda x: is_date_valid(x.split('.')[0], 2, start_date=start_date, end_date=end_date),
+                       tweets_directory))
 
 
 # TODO this is useless, can be incorporated in previous function
@@ -71,15 +79,16 @@ def get_temp_window_tweets(start_date):
     return list(filter(lambda x: is_date_valid(x.split('.')[0], start_date, 0), tweets_directory))
 
 
-def is_date_valid(filename, date, operator):
-    filename_to_date = datetime.strptime(filename, '%d-%m-%Y')
+def is_date_valid(filename, operator, start_date=None, end_date=None):
+    filename_to_date = datetime.strptime(filename, config.DATE_FORMAT)
     if operator == 0:
-        return filename_to_date.strftime('%d-%m-%Y') >= date.strftime('%d-%m-%Y')
+        return filename_to_date >= start_date
     elif operator == 1:
-        return filename_to_date.strftime('%d-%m-%Y') <= date.strftime('%d-%m-%Y')
+        return filename_to_date <= end_date
     elif operator == 2:
-        current_date = datetime.today() - timedelta(days=1)
-        return date.strftime('%d-%m-%Y') <= filename_to_date.strftime('%d-%m-%Y') <= current_date.strftime('%d-%m-%Y')
+        return start_date <= filename_to_date <= end_date
+    elif operator == 3:
+        return filename_to_date == start_date
 
 
 def import_local_tweets(filename):
@@ -111,13 +120,12 @@ def check_tweet_date(file_date, date):
     return file_date >= date.strftime('%d-%m-%Y')
 
 
-def check_filtered_tweets(start_date):
-    filtered_tweets = os.listdir(FILTERED_TWEET_PATH)
+def check_filtered_tweets(start_date, end_date):
+    filtered_tweets = os.listdir(config.FILTERED_TWEET_PATH)
     filtered_tweets.sort()
-    current_date = datetime.today() - timedelta(days=1)
     if len(filtered_tweets) > 0:
-        if is_date_valid(filtered_tweets[0], start_date, 0) and \
-                is_date_valid(filtered_tweets[len(filtered_tweets) - 1], current_date, 1):
+        if is_date_valid(filtered_tweets[0], 0, start_date=start_date) and \
+                is_date_valid(filtered_tweets[len(filtered_tweets) - 1], 1, end_date=end_date):
             return True
         else:
             return False
