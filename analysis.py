@@ -36,6 +36,11 @@ def start_analysis(start_date, end_date):
             else:
                 preprocessing.preprocess_tweets(start_date, end_date)
 
+        if processed_cve_check == config.MISSING_CVES:
+            preprocessing.preprocess_cves(cve_files=missing_cves)
+        else:
+            preprocessing.preprocess_cves()
+
         tweet_cve = tweet.import_processed_tweet_cve()
         if model.check_model(tweet_cve):
             if model.check_results(start_date):

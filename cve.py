@@ -1,10 +1,11 @@
 import os
 import pickle
 import nvdlib
-from requests import HTTPError
+import config
 
 from tqdm import tqdm
 from datetime import datetime
+from requests import HTTPError
 from concurrent.futures import ThreadPoolExecutor
 
 NVD_URL = 'https://services.nvd.nist.gov/rest/json/cves/1.0/?'
@@ -15,9 +16,16 @@ MAX_RESULTS = 2000
 MAX_DAYS_AGO = 120
 
 
-def check_cves():
-    directory_files = os.listdir(CVE_PATH)
-    return len(directory_files) > 0
+def check_processed_cves():
+    cves = os.listdir(config.PROCESSED_CVE_PATH)
+    if len(cves) == 0:
+        return config.NO_FILES, None
+    else:
+        missing_cves = list((set(os.listdir(config.CVE_PATH)).difference(set(cves))))
+        if len(missing_cves) > 0:
+            return config.MISSING_CVES, missing_cves
+        else:
+            return config.FILES_OK, None
 
 
 def retrieve_cves(cves):
