@@ -64,18 +64,15 @@ def collect_tweets(folder_name, response):
             print("Connection error while getting tweets from database. Try later")
 
 
-def get_temp_window_files(start_date, end_date):
-    tweets_directory = os.listdir(TWEET_PATH)
+def get_temp_window_files(start_date, end_date, path):
+    tweets_directory = os.listdir(path)
     tweets_directory.sort()
-    return list(filter(lambda x: is_date_valid(x.split('.')[0], 2, start_date=start_date, end_date=end_date),
-                       tweets_directory))
-
-
-# TODO this is useless, can be incorporated in previous function
-def get_temp_window_tweets(start_date):
-    tweets_directory = os.listdir(FILTERED_TWEET_PATH)
-    tweets_directory.sort()
-    return list(filter(lambda x: is_date_valid(x.split('.')[0], start_date, 0), tweets_directory))
+    if path == config.TWEET_PATH:
+        return list(filter(lambda x: is_date_valid(x.split('.')[0], 2, start_date=start_date, end_date=end_date),
+                           tweets_directory))
+    else:
+        return list(filter(lambda x: is_date_valid(x, 2, start_date=start_date, end_date=end_date),
+                           tweets_directory))
 
 
 def is_date_valid(filename, operator, start_date=None, end_date=None):

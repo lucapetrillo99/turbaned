@@ -79,7 +79,8 @@ def get_tweets_with_cve(start_date, end_date):
         if len(tweets_found) > 0:
             tweet.remove_tweets_with_cve(tweets_found)
             cve.retrieve_cves(cves)
-            preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True, cve_analysis=True)
+            preprocessing.preprocess_data(start_date, end_date, tweet_cve_analysis=True, tweet_analysis=True,
+                                          cve_analysis=True)
             print('Creating model for cve...')
             model.create_model()
             model.find_similarity(start_date)
@@ -95,14 +96,14 @@ def get_tweets_with_cve(start_date, end_date):
 def check_files(start_date, end_date):
     tweet_directory = os.listdir(config.TWEET_PATH)
     if len(tweet_directory) > 0:
-        files = tweet.get_temp_window_files(start_date, end_date)
+        files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
 
         # check for tweets that match an end date, otherwise download tweets from the last available date to the
         # tweets with the indicated end date
         if not tweet.is_date_valid(files[0].split('.')[0], 3, start_date=start_date):
             if len(os.listdir(config.CVE_PATH)) == 0:
                 tweet.get_tweets(start_date, files[0].split('.')[0])
-                files = tweet.get_temp_window_files(start_date, end_date)
+                files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
             else:
 
                 # if there are cve the process starts from scratch
@@ -110,14 +111,14 @@ def check_files(start_date, end_date):
                 tweet.get_tweets(start_date, end_date)
                 tweet_directory = os.listdir(config.TWEET_PATH)
                 tweet_directory.sort()
-                files = tweet.get_temp_window_files(start_date, end_date)
+                files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
 
         # check for tweets that match an end date, otherwise download tweets from the last available date to the
         # tweets with the indicated end date
         if not tweet.is_date_valid(files[len(files) - 1].split('.')[0], 3, start_date=end_date):
             if len(os.listdir(config.CVE_PATH)) == 0:
                 tweet.get_tweets(files[len(files) - 1].split('.')[0], end_date)
-                files = tweet.get_temp_window_files(start_date, end_date)
+                files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
             else:
 
                 # if there are cve the process starts from scratch
@@ -125,7 +126,7 @@ def check_files(start_date, end_date):
                 tweet.get_tweets(start_date, end_date)
                 tweet_directory = os.listdir(config.TWEET_PATH)
                 tweet_directory.sort()
-                files = tweet.get_temp_window_files(start_date, end_date)
+                files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
     else:
         if len(os.listdir(config.CVE_PATH)) > 0:
             subprocess.call(['sh', './clean_data.sh'])
@@ -133,6 +134,6 @@ def check_files(start_date, end_date):
         tweet.get_tweets(start_date, end_date)
         tweet_directory = os.listdir(config.TWEET_PATH)
         tweet_directory.sort()
-        files = tweet.get_temp_window_files(start_date, end_date)
+        files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
 
     return files
