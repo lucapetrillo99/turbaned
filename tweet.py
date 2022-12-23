@@ -13,7 +13,6 @@ from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor
 
-TWEET_URL = 'https://martellone.iit.cnr.it/index.php/s/godwgTnKeA2dxKi/download?path=%2F&files='
 TWEET_PATH = 'data/tweets/'
 FILTERED_TWEET_PATH = 'data/filtered_tweets/'
 PROCESSED_TWEET_CVE = 'data/processed/tweets_cve/'
@@ -45,7 +44,7 @@ def get_tweets(initial_date, final_date):
                          rrule(MONTHLY, dtstart=initial_date, until=final_date + relativedelta(months=1))]
     with ThreadPoolExecutor() as executor:
         for idx, date in tqdm(enumerate(monthly_dates)):
-            monthly_tweet_url = TWEET_URL + date.strftime('%m-%Y') + '.tar.gz'
+            monthly_tweet_url = 'url' + date.strftime('%m-%Y') + '.tar.gz'
             try:
                 response = requests.get(monthly_tweet_url, stream=True)
                 if response.status_code == 200:
@@ -124,37 +123,33 @@ def check_tweet_date(file_date, date):
 
 
 def check_filtered_tweets(start_date, end_date):
-    filtered_tweets = os.listdir(config.FILTERED_TWEET_PATH)
-    filtered_tweets.sort()
-    start_date_check = is_date_valid(filtered_tweets[0], 3, start_date=start_date)
-    end_date_check = is_date_valid(filtered_tweets[len(filtered_tweets) - 1], 3, start_date=end_date)
-    if len(filtered_tweets) > 0:
-        if start_date_check and end_date_check:
-            return config.FILTERED_TWEET_OK, None, None
-        elif not start_date_check and end_date_check:
-            return config.WRONG_FILTERED_S_DATE, start_date, filtered_tweets[0]
-        elif start_date_check and not end_date_check:
-            return config.WRONG_FILTERED_E_DATE, filtered_tweets[len(filtered_tweets) - 1], end_date
+    return check_files_dates(start_date, end_date, config.FILTERED_TWEET_PATH)
+
+
+def check_processed_tweets_cve(start_date, end_date):
+    return check_files_dates(start_date, end_date, config.PROCESSED_TWEET_CVE_PATH)
+
+
+def check_processed_tweets(start_date, end_date):
+    return check_files_dates(start_date, end_date, config.PROCESSED_TWEET_PATH)
+
+
+def check_files_dates(start_date, end_date, files_path):
+    files = os.listdir(files_path)
+    files.sort()
+    if len(files) > 0:
+        tweet_start_date_check = is_date_valid(files[0], 3, start_date=start_date)
+        tweet_end_date_check = is_date_valid(files[len(files) - 1], 3, start_date=end_date)
+        if tweet_start_date_check and tweet_end_date_check:
+            return config.FILES_OK, None, None
+        elif not tweet_start_date_check and tweet_end_date_check:
+            return config.WRONG_S_DATE, start_date, files[0]
+        elif tweet_start_date_check and not tweet_end_date_check:
+            return config.WRONG_E_DATE, files[len(files) - 1], end_date
         else:
-            return config.WRONG_FILTERED_DATES, None, None
+            return config.WRONG__DATES, None, None
     else:
-        return config.NO_FILTERED_TWEETS, None, None
-
-
-def check_processed_tweets(start_date):
-    processed_tweets_cve = os.listdir(PROCESSED_TWEET_CVE)
-    processed_tweets = os.listdir(PROCESSED_TWEET)
-
-    if (len(processed_tweets_cve) > 0) and (len(processed_tweets) > 0):
-        if start_date.strftime('%d-%m-%Y') + '.json' in processed_tweets:
-            return PROCESSED_DATA_FOUND
-    elif len(processed_tweets_cve) > 0 and len(processed_tweets) == 0:
-        return NO_TWEETS_PROCESSED
-    elif len(processed_tweets) > 0 and len(processed_tweets_cve) == 0:
-        if start_date.strftime('%d-%m-%Y') + '.json' in processed_tweets:
-            return NO_TWEETS_CVES_PROCESSED
-    else:
-        return NO_PROCESSED_DATA
+        return config.NO_FILES, None, None
 
 
 def export_processed_tweets(filename, processed_tweets, cve=None):
