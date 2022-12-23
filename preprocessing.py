@@ -21,15 +21,6 @@ w_tokenizer = TweetTokenizer()
 cve_regex = cve.build_regex()
 
 
-def preprocess_data(start_date, end_date, tweet_cve_analysis=False, tweet_analysis=False, cve_analysis=False):
-    if tweet_cve_analysis:
-        preprocess_tweets_cve(start_date, end_date)
-    if tweet_analysis:
-        preprocess_tweets(start_date, end_date)
-    if cve_analysis:
-        preprocess_cves()
-
-
 def preprocess_tweets_cve(start_date, end_date):
     print('Cleaning text of tweets with cve...')
     tweets_with_cve = []
@@ -66,10 +57,12 @@ def preprocess_tweets(start_date, end_date):
                 tweets = []
 
 
-def preprocess_cves():
-    cve_files = os.listdir(CVE_PATH)
+def preprocess_cves(cve_files=None):
+    if cve_files is None:
+        cve_files = os.listdir(config.CVE_PATH)
+
     with ThreadPoolExecutor() as pool:
-        for file in cve_files:
+        for file in tqdm(cve_files):
             content = cve.import_local_cve(file)
             content['parsed_text'] = pool.submit(clean_cve_text, content['description']).result()
             cve.export_processed_cve(content['id'], content)

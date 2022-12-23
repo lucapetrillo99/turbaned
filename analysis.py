@@ -19,20 +19,22 @@ def start_analysis(start_date, end_date):
             tweet.check_processed_tweets_cve(start_date, end_date)
         processed_tweet_check, new_proc_start_date, new_proc_end_date = tweet.check_processed_tweets(start_date,
                                                                                                      end_date)
-        if processed_tweet_cve_check != config.FILES_OK or processed_tweet_check != config.FILES_OK:
+        processed_cve_check, missing_cves = cve.check_processed_cves()
+        if processed_tweet_cve_check != config.FILES_OK:
             if processed_tweet_cve_check == config.WRONG_S_DATE:
-                preprocessing.preprocess_data(start_date, new_proc_t_end_date, tweet_cve_analysis=True)
+                preprocessing.preprocess_tweets_cve(start_date, new_proc_t_end_date)
             elif processed_tweet_cve_check == config.WRONG_E_DATE:
-                preprocessing.preprocess_data(new_proc_t_start_date, end_date, tweet_cve_analysis=True)
+                preprocessing.preprocess_tweets_cve(new_proc_t_start_date, end_date)
             else:
-                preprocessing.preprocess_data(start_date, end_date, tweet_cve_analysis=True)
+                preprocessing.preprocess_tweets_cve(start_date, end_date)
 
+        if processed_tweet_check != config.FILES_OK:
             if processed_tweet_check == config.WRONG_S_DATE:
-                preprocessing.preprocess_data(start_date, new_proc_end_date, tweet_analysis=True)
+                preprocessing.preprocess_tweets(start_date, new_proc_end_date)
             elif processed_tweet_check == config.WRONG_E_DATE:
-                preprocessing.preprocess_data(new_proc_start_date, end_date, tweet_analysis=True)
+                preprocessing.preprocess_tweets(new_proc_start_date, end_date)
             else:
-                preprocessing.preprocess_data(start_date, end_date, tweet_analysis=True)
+                preprocessing.preprocess_tweets(start_date, end_date)
 
         tweet_cve = tweet.import_processed_tweet_cve()
         if model.check_model(tweet_cve):
@@ -85,8 +87,8 @@ def get_tweets_with_cve(start_date, end_date):
         if len(tweets_found) > 0:
             tweet.remove_tweets_with_cve(tweets_found)
             cve.retrieve_cves(cves)
-            preprocessing.preprocess_data(start_date, end_date, tweet_cve_analysis=True, tweet_analysis=True,
-                                          cve_analysis=True)
+            preprocessing.preprocess_tweets(start_date, end_date)
+            preprocessing.preprocess_tweets_cve(start_date, end_date)
             print('Creating model for cve...')
             model.create_model()
             model.find_similarity(start_date)
