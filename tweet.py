@@ -191,7 +191,6 @@ def reorder_tweets(tweets_found):
 def remove_tweets_with_cve(tweets):
     print("Removing found tweets...")
     for filename, tweet_indexes in tqdm(reorder_tweets(tweets).items()):
-        print(filename)
         tweet_indexes = sorted(tweet_indexes, reverse=True)
         file = open(TWEET_PATH + filename, "r")
         data = json.load(file)
