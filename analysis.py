@@ -11,31 +11,37 @@ import preprocessing
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
-PROCESSED_DATA_FOUND = 1
-NO_PROCESSED_DATA = -2
-NO_TWEETS_PROCESSED = 0
-NO_TWEETS_CVES_PROCESSED = -1
-
 
 def start_analysis(start_date, end_date):
     filtered_check, new_start_date, new_end_date = tweet.check_filtered_tweets(start_date, end_date)
     if filtered_check == config.FILES_OK:
-        result = tweet.check_processed_tweets(start_date)
-        if result == PROCESSED_DATA_FOUND:
-            tweet_cve = tweet.import_processed_tweet_cve()
-            if model.check_model(tweet_cve):
-                if model.check_results(start_date):
-                    print("Results for {} are in data/results".format(start_date.strftime("%d-%m-%Y")))
-                else:
-                    model.find_similarity(start_date)
+        processed_tweet_cve_check, new_proc_t_start_date, new_proc_t_end_date = \
+            tweet.check_processed_tweets_cve(start_date, end_date)
+        processed_tweet_check, new_proc_start_date, new_proc_end_date = tweet.check_processed_tweets(start_date,
+                                                                                                     end_date)
+        if processed_tweet_cve_check != config.FILES_OK or processed_tweet_check != config.FILES_OK:
+            if processed_tweet_cve_check == config.WRONG_S_DATE:
+                preprocessing.preprocess_data(start_date, new_proc_t_end_date, tweet_cve_analysis=True)
+            elif processed_tweet_cve_check == config.WRONG_E_DATE:
+                preprocessing.preprocess_data(new_proc_t_start_date, end_date, tweet_cve_analysis=True)
             else:
-                model.create_model()
-        elif result == NO_TWEETS_PROCESSED:
-            preprocessing.preprocess_data(start_date, tweet_analysis=True)
-        elif result == NO_TWEETS_CVES_PROCESSED:
-            preprocessing.preprocess_data(start_date, tweet_cve_analysis=True)
+                preprocessing.preprocess_data(start_date, end_date, tweet_cve_analysis=True)
+
+            if processed_tweet_check == config.WRONG_S_DATE:
+                preprocessing.preprocess_data(start_date, new_proc_end_date, tweet_analysis=True)
+            elif processed_tweet_check == config.WRONG_E_DATE:
+                preprocessing.preprocess_data(new_proc_start_date, end_date, tweet_analysis=True)
+            else:
+                preprocessing.preprocess_data(start_date, end_date, tweet_analysis=True)
+
+        tweet_cve = tweet.import_processed_tweet_cve()
+        if model.check_model(tweet_cve):
+            if model.check_results(start_date):
+                print("Results for {} are in data/results".format(start_date.strftime("%d-%m-%Y")))
+            else:
+                model.find_similarity(start_date)
         else:
-            preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
+            model.create_model()
     else:
 
         # set the analysis start and end date based on which file is present
