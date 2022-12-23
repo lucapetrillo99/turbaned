@@ -88,7 +88,10 @@ def is_date_valid(filename, operator, start_date=None, end_date=None):
     elif operator == 2:
         return start_date <= filename_to_date <= end_date
     elif operator == 3:
-        return filename_to_date == start_date
+        if start_date is not None:
+            return filename_to_date == start_date
+        else:
+            return filename_to_date == end_date
 
 
 def import_local_tweets(filename):
@@ -124,8 +127,8 @@ def check_filtered_tweets(start_date, end_date):
     filtered_tweets = os.listdir(config.FILTERED_TWEET_PATH)
     filtered_tweets.sort()
     if len(filtered_tweets) > 0:
-        if is_date_valid(filtered_tweets[0], 0, start_date=start_date) and \
-                is_date_valid(filtered_tweets[len(filtered_tweets) - 1], 1, end_date=end_date):
+        if is_date_valid(filtered_tweets[0], 3, start_date=start_date) and \
+                is_date_valid(filtered_tweets[len(filtered_tweets) - 1], 3, end_date=end_date):
             return True
         else:
             return False
