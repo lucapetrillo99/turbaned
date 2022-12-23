@@ -126,14 +126,19 @@ def check_tweet_date(file_date, date):
 def check_filtered_tweets(start_date, end_date):
     filtered_tweets = os.listdir(config.FILTERED_TWEET_PATH)
     filtered_tweets.sort()
+    start_date_check = is_date_valid(filtered_tweets[0], 3, start_date=start_date)
+    end_date_check = is_date_valid(filtered_tweets[len(filtered_tweets) - 1], 3, start_date=end_date)
     if len(filtered_tweets) > 0:
-        if is_date_valid(filtered_tweets[0], 3, start_date=start_date) and \
-                is_date_valid(filtered_tweets[len(filtered_tweets) - 1], 3, end_date=end_date):
-            return True
+        if start_date_check and end_date_check:
+            return config.FILTERED_TWEET_OK, None, None
+        elif not start_date_check and end_date_check:
+            return config.WRONG_FILTERED_S_DATE, start_date, filtered_tweets[0]
+        elif start_date_check and not end_date_check:
+            return config.WRONG_FILTERED_E_DATE, filtered_tweets[len(filtered_tweets) - 1], end_date
         else:
-            return False
+            return config.WRONG_FILTERED_DATES, None, None
     else:
-        return False
+        return config.NO_FILTERED_TWEETS, None, None
 
 
 def check_processed_tweets(start_date):

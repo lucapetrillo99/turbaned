@@ -18,7 +18,8 @@ NO_TWEETS_CVES_PROCESSED = -1
 
 
 def start_analysis(start_date, end_date):
-    if tweet.check_filtered_tweets(start_date, end_date):
+    filtered_check, new_start_date, new_end_date = tweet.check_filtered_tweets(start_date, end_date)
+    if filtered_check == config.FILTERED_TWEET_OK:
         result = tweet.check_processed_tweets(start_date)
         if result == PROCESSED_DATA_FOUND:
             tweet_cve = tweet.import_processed_tweet_cve()
@@ -36,10 +37,22 @@ def start_analysis(start_date, end_date):
         else:
             preprocessing.preprocess_data(start_date, tweet_cve_analysis=True, tweet_analysis=True)
     else:
-        get_tweets_with_cve(start_date, end_date)
+
+        # set the analysis start and end date based on which file is present
+        if filtered_check == config.WRONG_FILTERED_S_DATE:
+            get_tweets_with_cve(start_date, new_end_date)
+        elif filtered_check == config.WRONG_FILTERED_E_DATE:
+            get_tweets_with_cve(new_start_date, end_date)
+        else:
+            get_tweets_with_cve(start_date, end_date)
 
 
 def get_tweets_with_cve(start_date, end_date):
+    if type(start_date) is str:
+        start_date = datetime.strptime(start_date, config.DATE_FORMAT)
+    if type(end_date) is str:
+        end_date = datetime.strptime(end_date, config.DATE_FORMAT)
+
     files = check_files(start_date, end_date)
     if len(files) > 0:
         print("Analyzing tweets...")
