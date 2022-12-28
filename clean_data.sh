@@ -9,6 +9,8 @@ if [ -n "$(ls -A "$TWEET_PATH")" ]; then
   done
 fi
 
-for file in "$CVE_PATH"*; do
-  rm "$file"
-done
+if [ -n "$(ls -A "$CVE_PATH")" ]; then
+  for file in "$CVE_PATH"*; do
+    rm "$file"
+  done
+fi
