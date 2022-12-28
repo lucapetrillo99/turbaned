@@ -3,6 +3,7 @@ import pickle
 import nvdlib
 import config
 
+from retry import retry
 from tqdm import tqdm
 from datetime import datetime
 from requests import HTTPError
@@ -28,21 +29,15 @@ def check_processed_cves():
             return config.FILES_OK, None
 
 
+@retry(HTTPError, tries=5, delay=5, max_delay=10)
 def retrieve_cves(cves):
     print("Fetching cves online...")
     files = os.listdir(CVE_PATH)
     with ThreadPoolExecutor() as executor:
         for cve_id in tqdm(cves):
             if cve_id not in files:
-                try:
-                    cve = nvdlib.searchCVE(cveId=cve_id)[0]
-                    if len(cve.score) > 1:
-                        if cve.score[1] > MINIMUM_SCORE:
-                            executor.submit(collect_cve, cve)
-                except HTTPError:
-                    pass
-                except AttributeError:
-                    pass
+                cve = nvdlib.searchCVE(cveId=cve_id)[0]
+                executor.submit(collect_cve, cve)
 
 
 def collect_cve(cve_result):
