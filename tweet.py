@@ -32,11 +32,6 @@ def get_tweets(initial_date, final_date):
     except FileExistsError:
         pass
 
-    if type(initial_date) is str:
-        initial_date = datetime.strptime(initial_date, config.DATE_FORMAT)
-    if type(final_date) is str:
-        final_date = datetime.strptime(final_date, config.DATE_FORMAT)
-
     if initial_date.month == final_date.month:
         monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=final_date)]
     else:
@@ -140,9 +135,9 @@ def check_files_dates(start_date, end_date, files_path):
         if tweet_start_date_check and tweet_end_date_check:
             return config.FILES_OK, None, None
         elif not tweet_start_date_check and tweet_end_date_check:
-            return config.WRONG_S_DATE, start_date, files[0]
+            return config.WRONG_S_DATE, start_date, datetime.strptime(files[0], config.DATE_FORMAT)
         elif tweet_start_date_check and not tweet_end_date_check:
-            return config.WRONG_E_DATE, files[len(files) - 1], end_date
+            return config.WRONG_E_DATE, datetime.strptime(files[len(files) - 1], config.DATE_FORMAT), end_date
         else:
             return config.WRONG__DATES, None, None
     else:

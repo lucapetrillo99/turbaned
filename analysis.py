@@ -68,11 +68,6 @@ def start_analysis(start_date, end_date):
 
 
 def get_tweets_with_cve(start_date, end_date):
-    if type(start_date) is str:
-        start_date = datetime.strptime(start_date, config.DATE_FORMAT)
-    if type(end_date) is str:
-        end_date = datetime.strptime(end_date, config.DATE_FORMAT)
-
     files = check_files(start_date, end_date)
     if len(files) > 0:
         print("Analyzing tweets...")
@@ -120,13 +115,13 @@ def check_files(start_date, end_date):
         # check for tweets that match an end date, otherwise download tweets from the last available date to the
         # tweets with the indicated end date
         if not tweet.is_date_valid(files[0].split('.')[0], 3, start_date=start_date):
-            tweet.get_tweets(start_date, files[0].split('.')[0])
+            tweet.get_tweets(start_date, datetime.strptime(files[0].split('.')[0], config.DATE_FORMAT))
             files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
 
         # check for tweets that match an end date, otherwise download tweets from the last available date to the
         # tweets with the indicated end date
         if not tweet.is_date_valid(files[len(files) - 1].split('.')[0], 3, start_date=end_date):
-            tweet.get_tweets(files[len(files) - 1].split('.')[0], end_date)
+            tweet.get_tweets(datetime.strptime(files[len(files) - 1].split('.')[0], config.DATE_FORMAT), end_date)
             files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
     else:
         tweet.get_tweets(start_date, end_date)
