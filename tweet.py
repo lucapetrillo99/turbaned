@@ -66,7 +66,7 @@ def collect_tweets(folder_name, response):
 
 def get_temp_window_files(start_date, end_date, path):
     tweets_directory = os.listdir(path)
-    tweets_directory.sort()
+    tweets_directory.sort(key=lambda filename: datetime.strptime(filename.split(".")[0], config.DATE_FORMAT))
     if path == config.TWEET_PATH:
         return list(filter(lambda x: is_date_valid(x.split('.')[0], 2, start_date=start_date, end_date=end_date),
                            tweets_directory))
@@ -133,7 +133,7 @@ def check_processed_tweets(start_date, end_date):
 
 def check_files_dates(start_date, end_date, files_path):
     files = os.listdir(files_path)
-    files.sort()
+    files.sort(key=lambda filename: datetime.strptime(filename.split(".")[0], config.DATE_FORMAT))
     if len(files) > 0:
         tweet_start_date_check = is_date_valid(files[0], 3, start_date=start_date)
         tweet_end_date_check = is_date_valid(files[len(files) - 1], 3, start_date=end_date)
