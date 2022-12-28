@@ -16,7 +16,8 @@ cve_regex = cve.build_regex()
 
 def start_analysis(start_date, end_date):
     filtered_check, new_start_date, new_end_date = tweet.check_filtered_tweets(start_date, end_date)
-    if filtered_check == config.FILES_OK and check_files_consistency(start_date, end_date):
+    if filtered_check == config.FILES_OK:
+        check_files_consistency(start_date, end_date)
         processed_tweet_cve_check, new_proc_t_start_date, new_proc_t_end_date = \
             tweet.check_processed_tweets_cve(start_date, end_date)
         processed_tweet_check, new_proc_start_date, new_proc_end_date = tweet.check_processed_tweets(start_date,
@@ -153,25 +154,23 @@ def check_files(start_date, end_date):
     return files
 
 
+# check if any cve have been downloaded, if they are present check the latest available cve and if so download
+# the missing ones
 def check_files_consistency(start_date, end_date):
-    tweets = os.listdir(config.FILTERED_TWEET_PATH)
     cve_files = os.listdir(config.CVE_PATH)
 
     cves_id = []
-    if len(tweets) == 0 or len(cve_files) == 0:
-        subprocess.call(['sh', './clean_data.sh'])
-        return False
-    else:
-        files = tweet.get_temp_window_files(start_date, end_date, config.FILTERED_TWEET_PATH)
-        for file in files:
-            for t in tweet.import_local_tweets(file):
-                result = re.findall(cve_regex, t['text'], re.I)
-                if len(result) > 0:
-                    result = list(set(result))
-                    cves_id += result
+    files = tweet.get_temp_window_files(start_date, end_date, config.FILTERED_TWEET_PATH)
+    for file in files:
+        for t in tweet.import_filtered_tweets(file):
+            result = re.findall(cve_regex, t['text'], re.I)
+            if len(result) > 0:
+                result = list(set(result))
+                cves_id += result
 
-    if len(set(cves_id).difference(set(cve_files))) > 0:
-        subprocess.call(['sh', './clean_data.sh'])
-        return False
+    if len(cve_files) == 0:
+        cve.retrieve_cves(cves_id)
     else:
-        return True
+        missing_cves = list(set(cves_id).difference(set(cve_files)))
+        if len(missing_cves) > 0:
+            cve.retrieve_cves(missing_cves)
