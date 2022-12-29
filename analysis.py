@@ -30,6 +30,7 @@ def start_analysis(start_date, end_date):
             elif processed_tweet_cve_check == config.WRONG_E_DATE:
                 preprocessing.preprocess_tweets_cve(new_proc_t_start_date, end_date)
             else:
+                subprocess.call(['sh', './clean_processed_data.sh'] + [config.TWEET_CVE])
                 preprocessing.preprocess_tweets_cve(start_date, end_date)
 
         if processed_tweet_check != config.FILES_OK:
@@ -38,6 +39,7 @@ def start_analysis(start_date, end_date):
             elif processed_tweet_check == config.WRONG_E_DATE:
                 preprocessing.preprocess_tweets(new_proc_start_date, end_date)
             else:
+                subprocess.call(['sh', './clean_processed_data.sh'] + [config.TWEET])
                 preprocessing.preprocess_tweets(start_date, end_date)
 
         if processed_cve_check == config.NO_FILES:
@@ -62,8 +64,9 @@ def start_analysis(start_date, end_date):
             get_tweets_with_cve(new_start_date, end_date)
         else:
 
-            # if there are no filtered tweets based on the given dates, remove any filtered tweets and cve
+            # if there are no filtered tweets based on the given dates remove all files
             subprocess.call(['sh', './clean_data.sh'])
+            subprocess.call(['sh', './clean_processed_data.sh'] + [config.ALL_PROCESSED_DATA])
             get_tweets_with_cve(start_date, end_date)
 
 
