@@ -30,14 +30,31 @@ def check_processed_cves():
 
 
 @retry(HTTPError, tries=5, delay=5, max_delay=10)
-def retrieve_cves(cves):
+def retrieve_cves(start_date, end_date, cves=None):
     print("Fetching cves online...")
     files = os.listdir(CVE_PATH)
+    if cves is None:
+        filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+        f = open(config.CVE_REFERENCES_PATH + filename, 'rb')
+        cves = pickle.load(f)
+
     with ThreadPoolExecutor() as executor:
         for cve_id in tqdm(cves):
             if cve_id not in files:
                 cve = nvdlib.searchCVE(cveId=cve_id)[0]
                 executor.submit(collect_cve, cve)
+
+
+def export_cve_references(cve_ref, start_date, end_date):
+    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    with open(config.CVE_REFERENCES_PATH + filename, mode='wb') as f:
+        pickle.dump(cve_ref, f)
+
+
+def import_cve_references(start_date, end_date):
+    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    with open(config.CVE_REFERENCES_PATH + filename, mode='rb') as f:
+        return pickle.load(f)
 
 
 def collect_cve(cve_result):

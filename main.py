@@ -53,6 +53,7 @@ def start_script(start, end):
             os.mkdir(config.CVE_PATH)
             os.mkdir(config.TWEET_PATH)
             os.mkdir(config.FILTERED_TWEET_PATH)
+            os.mkdir(config.CVE_REFERENCES_PATH)
             os.makedirs(config.PROCESSED_CVE_PATH)
             os.makedirs(config.PROCESSED_TWEET_PATH)
             os.makedirs(config.PROCESSED_TWEET_CVE_PATH)

@@ -77,14 +77,15 @@ def get_tweets_with_cve(start_date, end_date):
         tweets_cves = []
         tweets_found = []
         tweets_indexes = []
-        cves = []
+        cve_ref = {}
+        cve_index = 0
         with ThreadPoolExecutor() as pool:
             for f in files:
-                for index, t in tqdm(enumerate(tweet.import_local_tweets(f))):
+                for index, t in enumerate(tqdm(tweet.import_local_tweets(f))):
                     result = re.findall(cve_regex, t['text'], re.I)
-                    if len(result) > 0:
-                        result = list(set(result))
-                        cves += result
+                    if len(result) == 1:
+                        cve_ref[result[0]] = cve_index
+                        cve_index += 1
                         tweets_indexes.append(index)
                         tweets_cves.append(t)
                 if len(tweets_indexes) > 0:
@@ -94,10 +95,12 @@ def get_tweets_with_cve(start_date, end_date):
                     pool.submit(tweet.export_filtered_tweets(filename=f.split(".")[0], filtered_tweets=tweets_cves))
                     tweets_cves = []
         if len(tweets_found) > 0:
+            cve.export_cve_references(cve_ref, start_date, end_date)
             tweet.remove_tweets_with_cve(tweets_found)
-            cve.retrieve_cves(cves)
+            cve.retrieve_cves(start_date, end_date)
             preprocessing.preprocess_tweets(start_date, end_date)
             preprocessing.preprocess_tweets_cve(start_date, end_date)
+            preprocessing.preprocess_cves()
             print('Creating model for cve...')
             model.create_model()
             model.find_similarity(start_date)
@@ -138,23 +141,21 @@ def check_files(start_date, end_date):
     return files
 
 
-# check if any cve have been downloaded, if they are present check the latest available cve and if so download
-# the missing ones
+# check if any cve have been downloaded, if they are present check the last available cve and if so download
+# the missing ones, otherwise the process starts from scratch
 def check_files_consistency(start_date, end_date):
-    cve_files = os.listdir(config.CVE_PATH)
+    cve_ref_filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
 
-    cves_id = []
-    files = tweet.get_temp_window_files(start_date, end_date, config.FILTERED_TWEET_PATH)
-    for file in files:
-        for t in tweet.import_filtered_tweets(file):
-            result = re.findall(cve_regex, t['text'], re.I)
-            if len(result) > 0:
-                result = list(set(result))
-                cves_id += result
-
-    if len(cve_files) == 0:
-        cve.retrieve_cves(cves_id)
+    if cve_ref_filename in os.listdir(config.CVE_REFERENCES_PATH):
+        cve_files = os.listdir(config.CVE_PATH)
+        cves = list(cve.import_cve_references(start_date, end_date).keys())
+        if len(cve_files) == 0:
+            cve.retrieve_cves(start_date, end_date, cves=cves)
+        else:
+            missing_cves = list(set(cves).difference(set(cve_files)))
+            if len(missing_cves) > 0:
+                cve.retrieve_cves(missing_cves, start_date, end_date)
     else:
-        missing_cves = list(set(cves_id).difference(set(cve_files)))
-        if len(missing_cves) > 0:
-            cve.retrieve_cves(missing_cves)
+        subprocess.call(['sh', './clea_data.sh'])
+        subprocess.call(['sh', './clean_tweets.sh'])
+        get_tweets_with_cve(start_date, end_date)

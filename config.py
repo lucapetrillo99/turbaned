@@ -5,9 +5,10 @@ SCRIPT_DESCRIPTION = 'You can enter a [START_DATE] of your choice and indicate a
 
 # SCRIPT DIRECTORIES
 DATA_PATH = 'data/'
-CVE_PATH = DATA_PATH + '/cve/'
+CVE_PATH = DATA_PATH + 'cve/'
 TWEET_PATH = DATA_PATH + 'tweets/'
 FILTERED_TWEET_PATH = DATA_PATH + 'filtered_tweets/'
+CVE_REFERENCES_PATH = DATA_PATH + 'cve_references/'
 PROCESSED_CVE_PATH = DATA_PATH + 'processed/cve/'
 PROCESSED_TWEET_PATH = DATA_PATH + 'processed/tweet/'
 PROCESSED_TWEET_CVE_PATH = DATA_PATH + 'processed/tweets_cve/'
