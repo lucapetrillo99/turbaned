@@ -84,9 +84,11 @@ def get_tweets_with_cve(start_date, end_date):
                 for index, t in enumerate(tqdm(tweet.import_local_tweets(f))):
                     result = re.findall(cve_regex, t['text'], re.I)
                     if len(result) == 1:
-                        cve_ref[result[0]] = cve_index
-                        cve_index += 1
+                        if result[0] not in cve_ref:
+                            cve_ref[result[0]] = cve_index
+                            cve_index += 1
                         tweets_indexes.append(index)
+                        t['tag'] = result[0]
                         tweets_cves.append(t)
                 if len(tweets_indexes) > 0:
                     tweets_found.append({f: tweets_indexes})
@@ -154,7 +156,7 @@ def check_files_consistency(start_date, end_date):
         else:
             missing_cves = list(set(cves).difference(set(cve_files)))
             if len(missing_cves) > 0:
-                cve.retrieve_cves(missing_cves, start_date, end_date)
+                cve.retrieve_cves(start_date, end_date, cves=missing_cves)
     else:
         subprocess.call(['sh', './clea_data.sh'])
         subprocess.call(['sh', './clean_tweets.sh'])
