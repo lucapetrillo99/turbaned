@@ -1,8 +1,12 @@
 import os
 import json
+
+import config
+import cve
 import tweet
 
 from tqdm import tqdm
+from sklearn import utils
 from scipy.spatial import distance
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
@@ -32,7 +36,32 @@ def check_model(tweets_cve):
         return False
 
 
-def create_model():
+def split_dataset(start_date, end_date):
+    cve_ref = cve.import_cve_references(start_date, end_date)
+    documents = []
+
+    for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_CVE_PATH):
+        for content in tweet.import_processed_tweet_cve_content(file):
+            documents.append(TaggedDocument(content["parsed_text"], [content['id']]))
+
+    for f_name in cve.import_cve_files():
+        cve_content = cve.import_processed_cve(f_name)
+        documents.append(TaggedDocument(cve_content['parsed_text'], [cve_ref.get(cve_content['id'])]))
+
+    # division of data into train and test (80% (70% - 10%), 20%)
+    documents = utils.shuffle(documents)
+    train_len = round((len(documents) * 80) / 100)
+    train_data = documents[:train_len]
+    test_data = documents[train_len:]
+
+    validation_len = round((len(train_data) * 10) / 100)
+    validation_data = train_data[:validation_len]
+    train_data = train_data[validation_len:]
+
+    return train_data, test_data, validation_data
+
+
+def create_model(start_date, end_date):
     tweets_cve = tweet.import_processed_tweet_cve()
     for tweet_cve in tweets_cve:
         model = Doc2Vec(min_count=1, epochs=30)
