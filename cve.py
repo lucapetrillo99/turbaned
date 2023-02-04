@@ -72,9 +72,18 @@ def import_local_cve(filename):
     return pickle.load(f)
 
 
+def import_cve_files():
+    return os.listdir(config.CVE_PATH)
+
+
 def export_processed_cve(filename, cve):
     with open(PROCESSED_CVE_PATH + filename, mode='wb') as f:
         pickle.dump(cve, f)
+
+
+def import_processed_cve(filename):
+    f = open(config.PROCESSED_CVE_PATH + filename, 'rb')
+    return pickle.load(f)
 
 
 # Method for constructing a regex to find a format of the type CVE-YEAR-ID (e.g., CVE-2022-1536) in tweets.
