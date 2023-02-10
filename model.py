@@ -1,5 +1,6 @@
 import os
 import json
+import pickle
 
 import config
 import cve
@@ -58,6 +59,11 @@ def split_dataset(start_date, end_date):
     validation_data = train_data[:validation_len]
     train_data = train_data[validation_len:]
 
+    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    export_dataset(config.TRAIN_DATA_PATH, filename, train_data)
+    export_dataset(config.TEST_DATA_PATH, filename, test_data)
+    export_dataset(config.VALIDATION_DATA_PATH, filename, validation_data)
+
     return train_data, test_data, validation_data
 
 
@@ -103,3 +109,8 @@ def find_similarity(start_date):
             results.clear()
 
     print("Process finished. You can consult outputs in data/results folder")
+
+
+def export_dataset(path, filename, data):
+    with open(path + filename, mode='wb') as f:
+        pickle.dump(data, f)
