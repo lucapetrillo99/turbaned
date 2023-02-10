@@ -33,6 +33,7 @@ def check_processed_cves():
 def retrieve_cves(start_date, end_date, cves=None):
     print("Fetching cves online...")
     files = os.listdir(CVE_PATH)
+    cves_not_found = []
     if cves is None:
         filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
         f = open(config.CVE_REFERENCES_PATH + filename, 'rb')
@@ -41,14 +42,30 @@ def retrieve_cves(start_date, end_date, cves=None):
     with ThreadPoolExecutor() as executor:
         for cve_id in tqdm(cves):
             if cve_id not in files:
-                cve = nvdlib.searchCVE(cveId=cve_id)[0]
-                executor.submit(collect_cve, cve)
+                try:
+                    result = nvdlib.searchCVE(cveId=cve_id)
+                    if result:
+                        executor.submit(collect_cve, result[0])
+                    else:
+                        cves_not_found.append(cve_id)
+                        pass
+                except HTTPError:
+                    cves_not_found.append(cve_id)
+                    pass
+
+        print("Removing cves not found")
+        executor.submit(remove_cves, cves_not_found, start_date, end_date)
 
 
 def export_cve_references(cve_ref, start_date, end_date):
     filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
-    with open(config.CVE_REFERENCES_PATH + filename, mode='wb') as f:
-        pickle.dump(cve_ref, f)
+
+    if os.path.exists(config.CVE_REFERENCES_PATH + filename):
+        with open(config.CVE_REFERENCES_PATH + filename, mode='rb+') as f:
+            pickle.dump(cve_ref, f)
+    else:
+        with open(config.CVE_REFERENCES_PATH + filename, mode='wb') as f:
+            pickle.dump(cve_ref, f)
 
 
 def import_cve_references(start_date, end_date):
@@ -94,3 +111,14 @@ def build_regex():
     date_range_regex = r"(?:1999|2[0-{}][0-{}][0-{}])".format(actual_year[1], actual_year[2], actual_year[3])
     id_regex = r"[\-—–][0-9]{4,}"
     return cve_regex + date_range_regex + id_regex
+
+
+def remove_cves(cves, start_date, end_date):
+    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    f = open(config.CVE_REFERENCES_PATH + filename, 'rb')
+    cve_ref = pickle.load(f)
+
+    for cve in cves:
+        del cve_ref[cve]
+
+    export_cve_references(cve_ref, start_date, end_date)
