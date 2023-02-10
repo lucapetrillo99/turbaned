@@ -57,7 +57,11 @@ def start_script(start, end):
             os.makedirs(config.PROCESSED_CVE_PATH)
             os.makedirs(config.PROCESSED_TWEET_PATH)
             os.makedirs(config.PROCESSED_TWEET_CVE_PATH)
-            os.mkdir(config.MODEL_PATH)
+            os.mkdir(config.MODEL_DATA_PATH)
+            os.makedirs(config.TRAIN_DATA_PATH)
+            os.makedirs(config.TEST_DATA_PATH)
+            os.makedirs(config.VALIDATION_DATA_PATH)
+            os.makedirs(config.MODEL_PATH)
             os.mkdir(config.RESULTS_PATH)
         except FileExistsError:
             pass

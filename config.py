@@ -12,7 +12,11 @@ CVE_REFERENCES_PATH = DATA_PATH + 'cve_references/'
 PROCESSED_CVE_PATH = DATA_PATH + 'processed/cve/'
 PROCESSED_TWEET_PATH = DATA_PATH + 'processed/tweet/'
 PROCESSED_TWEET_CVE_PATH = DATA_PATH + 'processed/tweets_cve/'
-MODEL_PATH = DATA_PATH + 'model/'
+MODEL_DATA_PATH = DATA_PATH + 'model_data/'
+TRAIN_DATA_PATH = MODEL_DATA_PATH + 'train/'
+TEST_DATA_PATH = MODEL_DATA_PATH + 'test/'
+VALIDATION_DATA_PATH = MODEL_DATA_PATH + 'validation/'
+MODEL_PATH = MODEL_DATA_PATH + 'model/'
 RESULTS_PATH = DATA_PATH + 'results/'
 
 # SCRIPT DATA
