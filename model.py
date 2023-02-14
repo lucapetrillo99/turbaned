@@ -38,16 +38,17 @@ def check_model(tweets_cve):
 
 
 def split_dataset(start_date, end_date):
-    cve_ref = cve.import_cve_references(start_date, end_date)
     documents = []
 
     for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_CVE_PATH):
-        for content in tweet.import_processed_tweet_cve_content(file):
-            documents.append(TaggedDocument(content["parsed_text"], [content['id']]))
+        for index, content in enumerate(tweet.import_processed_tweet_cve_content(file)):
+            element = {"file": file, 'index': index, 'tag': content['tag'], 'parsed_text': content['parsed_text']}
+            documents.append(element)
 
     for f_name in cve.import_cve_files():
         cve_content = cve.import_processed_cve(f_name)
-        documents.append(TaggedDocument(cve_content['parsed_text'], [cve_ref.get(cve_content['id'])]))
+        element = {"file": f_name, 'tag': cve_content['id'], 'parsed_text': cve_content['parsed_text']}
+        documents.append(element)
 
     # division of data into train and test (80% (70% - 10%), 20%)
     documents = utils.shuffle(documents)
@@ -58,6 +59,22 @@ def split_dataset(start_date, end_date):
     validation_len = round((len(train_data) * 10) / 100)
     validation_data = train_data[:validation_len]
     train_data = train_data[validation_len:]
+
+    i = 0
+    for tr in train_data:
+        tr['id'] = i
+        tr['document'] = TaggedDocument(tr['parsed_text'], [i])
+        i += 1
+
+    for te in test_data:
+        te['id'] = i
+        te['document'] = TaggedDocument(te['parsed_text'], [i])
+        i += 1
+
+    for v in validation_data:
+        v['id'] = i
+        v['document'] = TaggedDocument(v['parsed_text'], [i])
+        i += 1
 
     filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
     export_dataset(config.TRAIN_DATA_PATH, filename, train_data)
