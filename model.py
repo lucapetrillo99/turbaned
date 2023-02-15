@@ -5,6 +5,7 @@ import pickle
 import config
 import cve
 import tweet
+import multiprocessing
 
 from tqdm import tqdm
 from sklearn import utils
@@ -81,19 +82,35 @@ def split_dataset(start_date, end_date):
     export_dataset(config.TEST_DATA_PATH, filename, test_data)
     export_dataset(config.VALIDATION_DATA_PATH, filename, validation_data)
 
-    return train_data, test_data, validation_data
 
+def create_models(start_date, end_date):
+    print('Creating models ...')
 
-def create_model(start_date, end_date):
-    tweets_cve = tweet.import_processed_tweet_cve()
-    for tweet_cve in tweets_cve:
-        model = Doc2Vec(min_count=1, epochs=30)
-        for content in tweet.import_processed_tweet_cve_content(tweet_cve):
-            documents = [TaggedDocument(doc, [i]) for i, doc in enumerate(content['parsed_text'])]
-            model.build_vocab(documents)
-            model.train(documents, total_examples=model.corpus_count, epochs=model.epochs)
+    split_dataset(start_date, end_date)
+    filename = os.path.join(config.TRAIN_DATA_PATH,
+                            start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT))
+    file = open(filename, 'rb')
+    train_data = pickle.load(file)
+    cores = multiprocessing.cpu_count()
 
-        model.save(MODEL_PATH + tweet_cve + '.model')
+    model_dbow = Doc2Vec(dm=0, window=4, workers=cores, **config.common_kwargs)
+    model_dm = Doc2Vec(dm=1, dm_mean=1, window=1, workers=cores, **config.common_kwargs)
+
+    model_dbow.build_vocab([x['document'] for x in train_data])
+
+    # save some time by copying the vocabulary structures from the DBOW model to the DM model
+    model_dm.reset_from(model_dbow)
+
+    model_dbow.train([x['document'] for x in train_data], total_examples=model_dbow.corpus_count,
+                     epochs=model_dbow.epochs, report_delay=30 * 60)
+    model_dm.train([x['document'] for x in train_data], total_examples=model_dm.corpus_count,
+                    epochs=model_dm.epochs, report_delay=30 * 60)
+
+    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    model_dbow.save(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + '_' + filename + '.model'))
+    model_dm.save(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE + '_' + filename + '.model'))
+
+    file.close()
 
 
 # find similarity between tweets with cve and a tweet

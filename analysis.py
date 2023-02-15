@@ -52,9 +52,10 @@ def start_analysis(start_date, end_date):
             if model.check_results(start_date):
                 print("Results for {} are in data/results".format(start_date.strftime("%d-%m-%Y")))
             else:
-                model.find_similarity(start_date)
+                # model.find_similarity(start_date)
+                pass
         else:
-            model.create_model()
+            model.create_models(start_date, end_date)
     else:
 
         # set the analysis start and end date based on which file is present
@@ -103,9 +104,8 @@ def get_tweets_with_cve(start_date, end_date):
             preprocessing.preprocess_tweets(start_date, end_date)
             preprocessing.preprocess_tweets_cve(start_date, end_date)
             preprocessing.preprocess_cves()
-            print('Creating model for cve...')
-            model.create_model()
-            model.find_similarity(start_date)
+            model.create_models(start_date, end_date)
+            # model.find_similarity(start_date)
         else:
             current_date = datetime.now()
             print('No cve founds in tweets from {} to {}'.format(start_date.strftime(config.DATE_FORMAT),

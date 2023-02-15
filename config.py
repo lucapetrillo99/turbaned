@@ -1,6 +1,6 @@
 # SCRIPT INFO
 SCRIPT_USAGE = 'main.py [-h] [START_DATE] [END_DATE] [-d DAYS_AGO] [-m MONTHS_AGO]\n'
-SCRIPT_DESCRIPTION = 'You can enter a [START_DATE] of your choice and indicate an [END_DATE](optional). Otherwise you ' \
+SCRIPT_DESCRIPTION = 'You can enter a [START_DATE] of your choice and indicate an [END_DATE](optional). Otherwise you '\
                      'can enter the number of [-d DAYS_AGO] or [-m MONTHS_AGO] to be analyzed starting from today. '
 
 # SCRIPT DIRECTORIES
@@ -33,3 +33,12 @@ MISSING_CVES = -1
 TWEET_CVE = "1"
 TWEET = "2"
 ALL_PROCESSED_DATA = "4"
+
+# MODELS COMMON ARGUMENTS
+common_kwargs = dict(
+    vector_size=50, negative=5, hs=0, epochs=15, min_count=5, sample=1e-5
+)
+
+# MODELS NAME
+MODEL_DBOW_BASE = "doc2vec_dbow_base"
+MODEL_DM_BASE = "doc2vec_dm_base"
