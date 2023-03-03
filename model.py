@@ -1,10 +1,11 @@
 import os
+import cve
 import json
 import pickle
 
-import config
-import cve
 import tweet
+import config
+import numpy as np
 import multiprocessing
 
 from tqdm import tqdm
@@ -126,6 +127,79 @@ def create_models(start_date, end_date):
     model_dm.save(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE + '_' + filename + '.model'))
 
     file.close()
+
+    evaluate_models(filename, False)
+
+
+def evaluate_models(f_name_chunk, test_eval, dbow_model=None, dm_model=None,):
+    if dbow_model is None and dm_model is None:
+        model_dbow = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + "_" + f_name_chunk
+                                               + '.model'))
+        model_dmm = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE + "_" + f_name_chunk + '.model'))
+    else:
+        model_dbow = dbow_model
+        model_dmm = dm_model
+
+    if test_eval:
+        filename = os.path.join(config.TEST_DATA_PATH, f_name_chunk)
+    else:
+        filename = os.path.join(config.VALIDATION_DATA_PATH, f_name_chunk)
+
+    file = open(filename, 'rb')
+    data = pickle.load(file)
+
+    dbow_results = []
+    dm_results = []
+    dbow_scores = []
+    dm_scores = []
+
+    for d in data:
+        dbow_vector = model_dbow.infer_vector(d['document'].words)
+        dmm_vector = model_dmm.infer_vector(d['document'].words)
+
+        dbow_result = model_dbow.dv.most_similar(dbow_vector, topn=1)
+        dmm_result = model_dmm.dv.most_similar(dmm_vector, topn=1)
+
+        dbow_element = {'tweet_id': d['id'], 'predicted_tweet_id': dbow_result[0][0], 'source_tag': d['tag'],
+                        'score': dbow_result[0][1]}
+        dbow_results.append(dbow_element)
+        dbow_scores.append(dbow_result[0][1])
+
+        dmm_element = {'tweet_id': d['id'], 'predicted_tweet_id': dmm_result[0][0], 'source_tag': d['tag'],
+                        'score': dmm_result[0][1]}
+        dm_results.append(dmm_element)
+        dm_scores.append(dmm_result[0][1])
+
+    dbow_positives, dm_positives = evaluation_results(f_name_chunk, dbow_results, dm_results)
+
+    print(f"DBOW ACCURACY: {dbow_positives/len(data)}")
+    print(f"DM ACCURACY: {dm_positives/len(data)}")
+    print(f"DBOW POSITIVES: {dbow_positives}")
+    print(f"DM POSITIVES: {dbow_positives}")
+    print(f"TOTAL: {len(data)}")
+    print(f"DBOW MEAN SCORE: {np.mean(dbow_scores)}")
+    print(f"DM MEAN SCORE: {np.mean(dm_scores)}")
+
+
+def evaluation_results(f_chunk, dbow_results, dm_results):
+    filename = os.path.join(config.TRAIN_DATA_PATH, f_chunk)
+    file = open(filename, 'rb')
+    train_data = pickle.load(file)
+
+    dbow_positives = 0
+    dm_positives = 0
+
+    for db_res, dm_res in zip(dbow_results, dm_results):
+        for d in train_data:
+            if db_res['predicted_tweet_id'] == d['id']:
+                if db_res['source_tag'] == d['tag']:
+                    dbow_positives += 1
+
+            if dm_res['predicted_tweet_id'] == d['id']:
+                if dm_res['source_tag'] == d['tag']:
+                    dm_positives += 1
+
+    return dbow_positives, dm_positives
 
 
 # find similarity between tweets with cve and a tweet
