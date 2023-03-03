@@ -39,27 +39,42 @@ def check_model(tweets_cve):
 
 
 def split_dataset(start_date, end_date):
-    documents = []
+    cve_index = {}
+    train_data = []
+    test_data = []
+    validation_data = []
 
     for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_CVE_PATH):
         for index, content in enumerate(tweet.import_processed_tweet_cve_content(file)):
-            element = {"file": file, 'index': index, 'tag': content['tag'], 'parsed_text': content['parsed_text']}
-            documents.append(element)
+            element = {"type": "t", "file": file, 'index': index, 'tag': content['tag'],
+                       'parsed_text': content['parsed_text']}
+
+            if content['tag'] in cve_index:
+                cve_index[content['tag']].append(element)
+            else:
+                cve_index[content['tag']] = [element]
 
     for f_name in cve.import_cve_files():
         cve_content = cve.import_processed_cve(f_name)
-        element = {"file": f_name, 'tag': cve_content['id'], 'parsed_text': cve_content['parsed_text']}
-        documents.append(element)
+        element = {"type": "c", "file": f_name, 'tag': cve_content['id'], 'parsed_text': cve_content['parsed_text']}
 
-    # division of data into train and test (80% (70% - 10%), 20%)
-    documents = utils.shuffle(documents)
-    train_len = round((len(documents) * 80) / 100)
-    train_data = documents[:train_len]
-    test_data = documents[train_len:]
+        if cve_content['id'] in cve_index:
+            cve_index[cve_content['id']].append(element)
+        else:
+            cve_index[cve_content['id']] = [element]
 
-    validation_len = round((len(train_data) * 10) / 100)
-    validation_data = train_data[:validation_len]
-    train_data = train_data[validation_len:]
+    # division of data into train and test (80%, 10%, 10%)
+    for k in cve_index.keys():
+        if len(cve_index[k]) == 1:
+            train_data += cve_index[k]
+        else:
+            cve_index[k] = utils.shuffle(cve_index[k])
+            train_len = round(len(cve_index[k]) * 0.8)
+            val_len = round(len(cve_index[k]) * 0.1)
+
+            train_data += cve_index[k][:train_len]
+            validation_data += cve_index[k][train_len:train_len + val_len]
+            test_data += cve_index[k][train_len + val_len:]
 
     i = 0
     for tr in train_data:
