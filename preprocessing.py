@@ -44,8 +44,7 @@ def preprocess_tweets(start_date, end_date):
     with ThreadPoolExecutor() as pool:
         for file in tweet_files:
             for index, content in enumerate(tqdm(tweet.import_local_tweets(file))):
-                actual_tweet = {'index': index,
-                                'id': content['id'],
+                actual_tweet = {'file': file, 'index': index, 'id': content['id'],
                                 'parsed_text': pool.submit(clean_tweet_text, content['text']).result()}
                 if len(actual_tweet['parsed_text']) > 0:
                     tweets.append(actual_tweet)
