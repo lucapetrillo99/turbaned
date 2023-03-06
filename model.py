@@ -64,7 +64,7 @@ def split_dataset(start_date, end_date):
         else:
             cve_index[cve_content['id']] = [element]
 
-    # division of data into train and test (80%, 10%, 10%)
+    # division of data into train, test and validation set (80%, 10%, 10%)
     for k in cve_index.keys():
         if len(cve_index[k]) == 1:
             train_data += cve_index[k]
@@ -77,21 +77,9 @@ def split_dataset(start_date, end_date):
             validation_data += cve_index[k][train_len:train_len + val_len]
             test_data += cve_index[k][train_len + val_len:]
 
-    i = 0
-    for tr in train_data:
+    for i, tr in enumerate(train_data):
         tr['id'] = i
         tr['document'] = TaggedDocument(tr['parsed_text'], [i])
-        i += 1
-
-    for te in test_data:
-        te['id'] = i
-        te['document'] = TaggedDocument(te['parsed_text'], [i])
-        i += 1
-
-    for v in validation_data:
-        v['id'] = i
-        v['document'] = TaggedDocument(v['parsed_text'], [i])
-        i += 1
 
     filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
     export_dataset(config.TRAIN_DATA_PATH, filename, train_data)
@@ -120,7 +108,7 @@ def create_models(start_date, end_date):
     model_dbow.train([x['document'] for x in train_data], total_examples=model_dbow.corpus_count,
                      epochs=model_dbow.epochs, report_delay=30 * 60)
     model_dm.train([x['document'] for x in train_data], total_examples=model_dm.corpus_count,
-                    epochs=model_dm.epochs, report_delay=30 * 60)
+                   epochs=model_dm.epochs, report_delay=30 * 60)
 
     filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
     model_dbow.save(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + '_' + filename + '.model'))
@@ -131,7 +119,7 @@ def create_models(start_date, end_date):
     evaluate_models(filename, False)
 
 
-def evaluate_models(f_name_chunk, test_eval, dbow_model=None, dm_model=None,):
+def evaluate_models(f_name_chunk, test_eval, dbow_model=None, dm_model=None):
     if dbow_model is None and dm_model is None:
         model_dbow = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + "_" + f_name_chunk
                                                + '.model'))
@@ -154,26 +142,26 @@ def evaluate_models(f_name_chunk, test_eval, dbow_model=None, dm_model=None,):
     dm_scores = []
 
     for d in data:
-        dbow_vector = model_dbow.infer_vector(d['document'].words)
-        dmm_vector = model_dmm.infer_vector(d['document'].words)
+        dbow_vector = model_dbow.infer_vector(d['parsed_text'])
+        dmm_vector = model_dmm.infer_vector(d['parsed_text'])
 
         dbow_result = model_dbow.dv.most_similar(dbow_vector, topn=1)
         dmm_result = model_dmm.dv.most_similar(dmm_vector, topn=1)
 
-        dbow_element = {'tweet_id': d['id'], 'predicted_tweet_id': dbow_result[0][0], 'source_tag': d['tag'],
+        dbow_element = {'predicted_tweet_id': dbow_result[0][0], 'source_tag': d['tag'],
                         'score': dbow_result[0][1]}
         dbow_results.append(dbow_element)
         dbow_scores.append(dbow_result[0][1])
 
-        dmm_element = {'tweet_id': d['id'], 'predicted_tweet_id': dmm_result[0][0], 'source_tag': d['tag'],
-                        'score': dmm_result[0][1]}
+        dmm_element = {'predicted_tweet_id': dmm_result[0][0], 'source_tag': d['tag'],
+                       'score': dmm_result[0][1]}
         dm_results.append(dmm_element)
         dm_scores.append(dmm_result[0][1])
 
     dbow_positives, dm_positives = evaluation_results(f_name_chunk, dbow_results, dm_results)
 
-    print(f"DBOW ACCURACY: {dbow_positives/len(data)}")
-    print(f"DM ACCURACY: {dm_positives/len(data)}")
+    print(f"DBOW ACCURACY: {dbow_positives / len(data)}")
+    print(f"DM ACCURACY: {dm_positives / len(data)}")
     print(f"DBOW POSITIVES: {dbow_positives}")
     print(f"DM POSITIVES: {dbow_positives}")
     print(f"TOTAL: {len(data)}")
