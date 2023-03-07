@@ -117,8 +117,7 @@ def create_models(start_date, end_date):
 
     file.close()
 
-    with ThreadPoolExecutor() as executor:
-        executor.submit(evaluate_models, filename, False, True)
+    evaluate_models(filename, False, True)
 
 
 def evaluate_models(f_name_chunk, test_eval, print_results, dbow_model=None, dm_model=None):
@@ -160,9 +159,7 @@ def evaluate_models(f_name_chunk, test_eval, print_results, dbow_model=None, dm_
         dm_results.append(dmm_element)
         dm_scores.append(dmm_result[0][1])
 
-    with ThreadPoolExecutor() as executor:
-        dbow_positives, dm_positives = executor.submit(get_results, f_name_chunk, dbow_results,
-                                                       dm_results).result()
+    dbow_positives, dm_positives = get_results(f_name_chunk, dbow_results, dm_results)
 
     if print_results:
         print(f"DBOW ACCURACY: {dbow_positives / len(data)}")
