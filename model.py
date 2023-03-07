@@ -11,6 +11,7 @@ import multiprocessing
 from tqdm import tqdm
 from sklearn import utils
 from scipy.spatial import distance
+from concurrent.futures import ThreadPoolExecutor
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
 MODEL_PATH = 'data/models/'
@@ -116,10 +117,11 @@ def create_models(start_date, end_date):
 
     file.close()
 
-    evaluate_models(filename, False)
+    with ThreadPoolExecutor() as executor:
+        executor.submit(evaluate_models, filename, False, True)
 
 
-def evaluate_models(f_name_chunk, test_eval, dbow_model=None, dm_model=None):
+def evaluate_models(f_name_chunk, test_eval, print_results, dbow_model=None, dm_model=None):
     if dbow_model is None and dm_model is None:
         model_dbow = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + "_" + f_name_chunk
                                                + '.model'))
@@ -158,18 +160,26 @@ def evaluate_models(f_name_chunk, test_eval, dbow_model=None, dm_model=None):
         dm_results.append(dmm_element)
         dm_scores.append(dmm_result[0][1])
 
-    dbow_positives, dm_positives = evaluation_results(f_name_chunk, dbow_results, dm_results)
+    with ThreadPoolExecutor() as executor:
+        dbow_positives, dm_positives = executor.submit(get_results, f_name_chunk, dbow_results,
+                                                       dm_results).result()
 
-    print(f"DBOW ACCURACY: {dbow_positives / len(data)}")
-    print(f"DM ACCURACY: {dm_positives / len(data)}")
-    print(f"DBOW POSITIVES: {dbow_positives}")
-    print(f"DM POSITIVES: {dbow_positives}")
-    print(f"TOTAL: {len(data)}")
-    print(f"DBOW MEAN SCORE: {np.mean(dbow_scores)}")
-    print(f"DM MEAN SCORE: {np.mean(dm_scores)}")
+    if print_results:
+        print(f"DBOW ACCURACY: {dbow_positives / len(data)}")
+        print(f"DM ACCURACY: {dm_positives / len(data)}")
+        print(f"DBOW POSITIVES: {dbow_positives}")
+        print(f"DM POSITIVES: {dbow_positives}")
+        print(f"TOTAL: {len(data)}")
+        print(f"DBOW MEAN SCORE: {np.mean(dbow_scores)}")
+        print(f"DM MEAN SCORE: {np.mean(dm_scores)}")
+    else:
+        dbow = {"accuracy": dbow_positives / len(data), "positives": dbow_positives, "mean_score": np.mean(dbow_scores)}
+        dm = {"accuracy": dm_positives / len(data), "positives": dm_positives, "mean_score": np.mean(dm_scores)}
+
+        return dbow, dm
 
 
-def evaluation_results(f_chunk, dbow_results, dm_results):
+def get_results(f_chunk, dbow_results, dm_results):
     filename = os.path.join(config.TRAIN_DATA_PATH, f_chunk)
     file = open(filename, 'rb')
     train_data = pickle.load(file)
