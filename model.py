@@ -11,7 +11,6 @@ import multiprocessing
 from tqdm import tqdm
 from sklearn import utils
 from scipy.spatial import distance
-from concurrent.futures import ThreadPoolExecutor
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
 MODEL_PATH = 'data/models/'
@@ -42,7 +41,7 @@ def check_model(tweets_cve):
 
 def split_dataset(start_date, end_date):
     cve_index = {}
-    train_data = []
+    train = []
     test_data = []
     validation_data = []
 
@@ -68,19 +67,20 @@ def split_dataset(start_date, end_date):
     # division of data into train, test and validation set (80%, 10%, 10%)
     for k in cve_index.keys():
         if len(cve_index[k]) == 1:
-            train_data += cve_index[k]
+            train += cve_index[k]
         else:
             cve_index[k] = utils.shuffle(cve_index[k])
             train_len = round(len(cve_index[k]) * 0.8)
             val_len = round(len(cve_index[k]) * 0.1)
 
-            train_data += cve_index[k][:train_len]
+            train += cve_index[k][:train_len]
             validation_data += cve_index[k][train_len:train_len + val_len]
             test_data += cve_index[k][train_len + val_len:]
 
-    for i, tr in enumerate(train_data):
-        tr['id'] = i
+    train_data = {}
+    for i, tr in enumerate(train):
         tr['document'] = TaggedDocument(tr['parsed_text'], [i])
+        train_data[i] = tr
 
     filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
     export_dataset(config.TRAIN_DATA_PATH, filename, train_data)
@@ -101,14 +101,14 @@ def create_models(start_date, end_date):
     model_dbow = Doc2Vec(dm=0, window=4, workers=cores, **config.common_kwargs)
     model_dm = Doc2Vec(dm=1, dm_mean=1, window=1, workers=cores, **config.common_kwargs)
 
-    model_dbow.build_vocab([x['document'] for x in train_data])
+    model_dbow.build_vocab([x['document'] for x in train_data.values()])
 
     # save some time by copying the vocabulary structures from the DBOW model to the DM model
     model_dm.reset_from(model_dbow)
 
-    model_dbow.train([x['document'] for x in train_data], total_examples=model_dbow.corpus_count,
+    model_dbow.train([x['document'] for x in train_data.values()], total_examples=model_dbow.corpus_count,
                      epochs=model_dbow.epochs, report_delay=30 * 60)
-    model_dm.train([x['document'] for x in train_data], total_examples=model_dm.corpus_count,
+    model_dm.train([x['document'] for x in train_data.values()], total_examples=model_dm.corpus_count,
                    epochs=model_dm.epochs, report_delay=30 * 60)
 
     filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
@@ -185,14 +185,11 @@ def get_results(f_chunk, dbow_results, dm_results):
     dm_positives = 0
 
     for db_res, dm_res in zip(dbow_results, dm_results):
-        for d in train_data:
-            if db_res['predicted_tweet_id'] == d['id']:
-                if db_res['source_tag'] == d['tag']:
-                    dbow_positives += 1
+        if db_res['source_tag'] == train_data[db_res['predicted_tweet_id']]['tag']:
+            dbow_positives += 1
 
-            if dm_res['predicted_tweet_id'] == d['id']:
-                if dm_res['source_tag'] == d['tag']:
-                    dm_positives += 1
+        if dm_res['source_tag'] == train_data[dm_res['predicted_tweet_id']]['tag']:
+            dm_positives += 1
 
     return dbow_positives, dm_positives
 
