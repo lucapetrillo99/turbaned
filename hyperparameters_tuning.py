@@ -78,7 +78,7 @@ def tuning_models(f_chunk):
                             negative=dm_params['negative'],
                             hs=0, workers=cores)
 
-        dbow, dm = model.evaluate_models(f_chunk, False, False, model_dbow, model_dmm)
+        dbow, dm = model.evaluate_models(f_chunk, print_results=False, dbow_model=model_dbow, dm_model=model_dmm)
         dbow['params'] = dbow_params
         dm['params'] = dm_params
 

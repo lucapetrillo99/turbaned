@@ -117,10 +117,10 @@ def create_models(start_date, end_date):
 
     file.close()
 
-    evaluate_models(filename, False, True)
+    evaluate_models(filename, print_results=True)
 
 
-def evaluate_models(f_name_chunk, test_eval, print_results, dbow_model=None, dm_model=None):
+def evaluate_models(f_name_chunk, print_results, dbow_model=None, dm_model=None):
     if dbow_model is None and dm_model is None:
         model_dbow = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + "_" + f_name_chunk
                                                + '.model'))
@@ -129,11 +129,7 @@ def evaluate_models(f_name_chunk, test_eval, print_results, dbow_model=None, dm_
         model_dbow = dbow_model
         model_dmm = dm_model
 
-    if test_eval:
-        filename = os.path.join(config.TEST_DATA_PATH, f_name_chunk)
-    else:
-        filename = os.path.join(config.VALIDATION_DATA_PATH, f_name_chunk)
-
+    filename = os.path.join(config.VALIDATION_DATA_PATH, f_name_chunk)
     file = open(filename, 'rb')
     data = pickle.load(file)
 
