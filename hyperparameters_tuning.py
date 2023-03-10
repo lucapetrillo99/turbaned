@@ -65,6 +65,7 @@ def tuning_models(f_chunk):
                              window=dbow_params['window'],
                              epochs=dbow_params['epochs'],
                              min_count=dbow_params['min_count'],
+                             negative=dbow_params['negative'],
                              hs=0, workers=cores)
 
         model_dmm = Doc2Vec([x['document'] for x in train_data.values()],
@@ -74,6 +75,7 @@ def tuning_models(f_chunk):
                             window=dm_params['window'],
                             epochs=dm_params['epochs'],
                             min_count=dm_params['min_count'],
+                            negative=dm_params['negative'],
                             hs=0, workers=cores)
 
         dbow, dm = model.evaluate_models(f_chunk, False, False, model_dbow, model_dmm)
@@ -83,10 +85,10 @@ def tuning_models(f_chunk):
         dbow_results.append(dbow)
         dm_results.append(dm)
 
-        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow" + f_chunk + ".json"), "w") as dbow_file:
+        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json"), "w") as dbow_file:
             json.dump(dbow_results, dbow_file, indent=2)
 
-        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dm" + f_chunk + ".json"), "w") as dm_file:
+        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dm_" + f_chunk + ".json"), "w") as dm_file:
             json.dump(dm_results, dm_file, indent=2)
 
     return dbow_results, dm_results
@@ -109,9 +111,11 @@ def start_tuning(start, end):
 
     best_res = {}
     if dbow_res[dbow_best]['accuracy'] > dm_res[dm_best]['accuracy']:
-        best_res['dbow'] = dbow_res[dbow_best]['params']
+        best_res['model'] = 'dbow'
+        best_res['params'] = dbow_res[dbow_best]['params']
     else:
-        best_res['dm'] = dm_res[dm_best]['params']
+        best_res['model'] = 'dm'
+        best_res['params'] = dm_res[dm_best]['params']
 
     with open(os.path.join(config.MODEL_PATH, "hyperparameters"), "wb") as f:
         pickle.dump(best_res, f)
