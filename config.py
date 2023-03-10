@@ -17,6 +17,7 @@ TRAIN_DATA_PATH = MODEL_DATA_PATH + 'train/'
 TEST_DATA_PATH = MODEL_DATA_PATH + 'test/'
 VALIDATION_DATA_PATH = MODEL_DATA_PATH + 'validation/'
 MODEL_PATH = MODEL_DATA_PATH + 'model/'
+HYPERPARAMETERS_RESULTS_PATH = MODEL_DATA_PATH + 'hyperparameter_results/'
 RESULTS_PATH = DATA_PATH + 'results/'
 
 # SCRIPT DATA
@@ -34,10 +35,12 @@ TWEET_CVE = "1"
 TWEET = "2"
 ALL_PROCESSED_DATA = "3"
 
-# MODELS COMMON ARGUMENTS
+# MODELS DATA
 common_kwargs = dict(
-    vector_size=50, negative=5, hs=0, epochs=15, min_count=5, sample=1e-5
+    vector_size=50, negative=5, hs=0, epochs=15, min_count=5
 )
+HYPERPARAMETERS_FILE = "hyperparameters.json"
+HYPERPARAMETERS_PATH = DATA_PATH + HYPERPARAMETERS_FILE
 
 # MODELS NAME
 MODEL_DBOW_BASE = "doc2vec_dbow_base"
