@@ -165,7 +165,7 @@ def evaluate_models(f_name_chunk, test_eval, print_results, dbow_model=None, dm_
         print(f"DBOW ACCURACY: {dbow_positives / len(data)}")
         print(f"DM ACCURACY: {dm_positives / len(data)}")
         print(f"DBOW POSITIVES: {dbow_positives}")
-        print(f"DM POSITIVES: {dbow_positives}")
+        print(f"DM POSITIVES: {dm_positives}")
         print(f"TOTAL: {len(data)}")
         print(f"DBOW MEAN SCORE: {np.mean(dbow_scores)}")
         print(f"DM MEAN SCORE: {np.mean(dm_scores)}")
@@ -176,22 +176,87 @@ def evaluate_models(f_name_chunk, test_eval, print_results, dbow_model=None, dm_
         return dbow, dm
 
 
-def get_results(f_chunk, dbow_results, dm_results):
+def get_results(f_chunk, dbow_results, dm_results=None):
     filename = os.path.join(config.TRAIN_DATA_PATH, f_chunk)
     file = open(filename, 'rb')
     train_data = pickle.load(file)
 
-    dbow_positives = 0
-    dm_positives = 0
+    if dm_results:
+        dbow_positives = 0
+        dm_positives = 0
+        for db_res, dm_res in zip(dbow_results, dm_results):
+            if db_res['source_tag'] == train_data[db_res['predicted_tweet_id']]['tag']:
+                dbow_positives += 1
 
-    for db_res, dm_res in zip(dbow_results, dm_results):
-        if db_res['source_tag'] == train_data[db_res['predicted_tweet_id']]['tag']:
-            dbow_positives += 1
+            if dm_res['source_tag'] == train_data[dm_res['predicted_tweet_id']]['tag']:
+                dm_positives += 1
 
-        if dm_res['source_tag'] == train_data[dm_res['predicted_tweet_id']]['tag']:
-            dm_positives += 1
+        return dbow_positives, dm_positives
 
-    return dbow_positives, dm_positives
+    else:
+        positives = 0
+        for res in dbow_results:
+            if res['source_tag'] == train_data[res['predicted_tweet_id']]['tag']:
+                positives += 1
+
+        return positives
+
+
+def create_model(start_date, end_date):
+    print('Creating model ...')
+
+    filename = os.path.join(config.TRAIN_DATA_PATH,
+                            start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT))
+    file = open(filename, 'rb')
+    train_data = pickle.load(file)
+
+    with open(os.path.join(config.MODEL_PATH, "hyperparameters"), "rb") as f:
+        results = pickle.load(f)
+
+    cores = multiprocessing.cpu_count()
+
+    if results['model'] == 'dbow':
+        model = Doc2Vec(dm=0, workers=cores, **results['params'])
+    else:
+        model = Doc2Vec(dm=1, dm_mean=1, workers=cores, **results['params'])
+
+    model.build_vocab([x['document'] for x in train_data.values()])
+
+    model.train([x['document'] for x in train_data.values()], total_examples=model.corpus_count,
+                epochs=model.epochs, report_delay=30 * 60)
+
+    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    model.save(os.path.join(config.MODEL_PATH, config.FINAL_MODEL + '_' + filename + '.model'))
+
+    file.close()
+
+    evaluate_model(filename, model)
+
+
+def evaluate_model(f_name_chunk, model):
+    filename = os.path.join(config.TEST_DATA_PATH, f_name_chunk)
+    file = open(filename, 'rb')
+    data = pickle.load(file)
+
+    results = []
+    scores = []
+
+    for d in data:
+        vector = model.infer_vector(d['parsed_text'])
+
+        result = model.dv.most_similar(vector, topn=1)
+
+        dbow_element = {'predicted_tweet_id': result[0][0], 'source_tag': d['tag'],
+                        'score': result[0][1]}
+        results.append(dbow_element)
+        scores.append(result[0][1])
+
+    positives = get_results(f_name_chunk, results)
+
+    print(f"MODEL ACCURACY: {positives / len(data)}")
+    print(f"POSITIVES: {positives}")
+    print(f"TOTAL: {len(data)}")
+    print(f"MODEL MEAN SCORE: {np.mean(scores)}")
 
 
 # find similarity between tweets with cve and a tweet
