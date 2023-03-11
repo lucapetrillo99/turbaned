@@ -23,19 +23,23 @@ def check_results(start_date):
     return start_date.strftime("%d-%m-%Y") + '.json' in results
 
 
-def check_model(tweets_cve):
-    if len(os.listdir(MODEL_PATH)) > 0:
-        flag = True
-        for file in os.listdir(MODEL_PATH):
-            if file.split('.')[0] not in tweets_cve:
-                flag = False
+def check_data(start, end):
+    filename = start.strftime(config.DATE_FORMAT) + "_" + end.strftime(config.DATE_FORMAT)
+    try:
+        open(os.path.join(config.TRAIN_DATA_PATH, filename), "rb")
+        return True
+    except FileNotFoundError:
+        return False
 
-        if not flag:
-            for file in os.listdir(MODEL_PATH):
-                os.remove(os.path.join(MODEL_PATH, file))
 
-        return flag
-    else:
+def check_model(start_date, end_date):
+    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+
+    try:
+        Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + '_' + filename + '.model'))
+        Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + '_' + filename + '.model'))
+        return True
+    except FileNotFoundError:
         return False
 
 

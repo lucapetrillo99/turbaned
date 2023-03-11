@@ -47,15 +47,17 @@ def start_analysis(start_date, end_date):
         elif processed_cve_check == config.MISSING_CVES:
             preprocessing.preprocess_cves(cve_files=missing_cves)
 
-        tweet_cve = tweet.import_processed_tweet_cve()
-        if model.check_model(tweet_cve):
-            if model.check_results(start_date):
-                print("Results for {} are in data/results".format(start_date.strftime("%d-%m-%Y")))
+        if model.check_data(start_date, end_date):
+            if model.check_model(start_date, end_date):
+                print("All set! Proceed with the hyperparameters tuning step.")
             else:
-                # model.find_similarity(start_date)
-                pass
+                model.create_models(start_date, end_date)
         else:
-            model.create_models(start_date, end_date)
+            model.split_dataset(start_date, end_date)
+            if model.check_model(start_date, end_date):
+                print("All set! Proceed with the hyperparameters tuning step.")
+            else:
+                model.create_models(start_date, end_date)
     else:
 
         # set the analysis start and end date based on which file is present
