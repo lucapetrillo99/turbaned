@@ -201,10 +201,14 @@ def get_results(f_chunk, dbow_results, dm_results=None):
 def create_model(start_date, end_date):
     print('Creating model ...')
 
-    filename = os.path.join(config.TRAIN_DATA_PATH,
-                            start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT))
-    file = open(filename, 'rb')
-    train_data = pickle.load(file)
+    try:
+        filename = os.path.join(config.TRAIN_DATA_PATH,
+                                start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT))
+        file = open(filename, 'rb')
+        train_data = pickle.load(file)
+    except FileNotFoundError as e:
+        print(e)
+        exit(0)
 
     with open(os.path.join(config.MODEL_PATH, "hyperparameters"), "rb") as f:
         results = pickle.load(f)
@@ -230,9 +234,13 @@ def create_model(start_date, end_date):
 
 
 def evaluate_model(f_name_chunk, model):
-    filename = os.path.join(config.TEST_DATA_PATH, f_name_chunk)
-    file = open(filename, 'rb')
-    data = pickle.load(file)
+    try:
+        filename = os.path.join(config.TEST_DATA_PATH, f_name_chunk)
+        file = open(filename, 'rb')
+        data = pickle.load(file)
+    except FileNotFoundError as e:
+        print(e)
+        exit(0)
 
     results = []
     scores = []
