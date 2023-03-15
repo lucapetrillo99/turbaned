@@ -50,7 +50,7 @@ def split_dataset(start_date, end_date):
     validation_data = []
 
     for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_CVE_PATH):
-        for index, content in enumerate(tweet.import_processed_tweet_cve_content(file)):
+        for index, content in enumerate(tweet.import_data(config.PROCESSED_TWEET_CVE_PATH, file)):
             element = {"type": "t", "file": file, 'index': index, 'tag': content['tag'],
                        'parsed_text': content['parsed_text']}
 

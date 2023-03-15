@@ -28,7 +28,7 @@ def preprocess_tweets_cve(start_date, end_date):
     tweet_cve_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], config.DATE_FORMAT))
     with ThreadPoolExecutor() as pool:
         for idx, file in enumerate(tweet_cve_files):
-            for content in tqdm(tweet.import_filtered_tweets(file)):
+            for content in tqdm(tweet.import_data(config.FILTERED_TWEET_PATH, file)):
                 content['parsed_text'] = pool.submit(clean_tweet_text, content['text']).result()
                 if len(content['parsed_text']) > 0:
                     tweets_with_cve.append(content)

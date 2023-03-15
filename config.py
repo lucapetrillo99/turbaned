@@ -35,6 +35,11 @@ TWEET_CVE = "1"
 TWEET = "2"
 ALL_PROCESSED_DATA = "3"
 
+GREATER_EQUAL = 0
+LESS_EQUAL = 1
+INCLUDED = 2
+EQUAL = 3
+
 # MODELS DATA
 common_kwargs = dict(
     vector_size=50, negative=5, hs=0, epochs=15, min_count=5
