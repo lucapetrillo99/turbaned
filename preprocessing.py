@@ -62,7 +62,7 @@ def preprocess_cves(cve_files=None):
 
     with ThreadPoolExecutor() as pool:
         for file in tqdm(cve_files):
-            content = cve.import_local_cve(file)
+            content = cve.import_cve_data(config.CVE_PATH, file)
             content['parsed_text'] = pool.submit(clean_cve_text, content['description']).result()
             cve.export_processed_cve(content['id'], content)
 

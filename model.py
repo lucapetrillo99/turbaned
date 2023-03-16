@@ -60,7 +60,7 @@ def split_dataset(start_date, end_date):
                 cve_index[content['tag']] = [element]
 
     for f_name in cve.import_cve_files():
-        cve_content = cve.import_processed_cve(f_name)
+        cve_content = cve.import_cve_data(config.PROCESSED_CVE_PATH, f_name)
         element = {"type": "c", "file": f_name, 'tag': cve_content['id'], 'parsed_text': cve_content['parsed_text']}
 
         if cve_content['id'] in cve_index:

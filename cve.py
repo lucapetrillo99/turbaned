@@ -9,12 +9,7 @@ from datetime import datetime
 from requests import HTTPError
 from concurrent.futures import ThreadPoolExecutor
 
-NVD_URL = 'https://services.nvd.nist.gov/rest/json/cves/1.0/?'
 MINIMUM_SCORE = 6.9
-CVE_PATH = 'data/cve/'
-PROCESSED_CVE_PATH = 'data/processed/cve/'
-MAX_RESULTS = 2000
-MAX_DAYS_AGO = 120
 
 
 def check_processed_cves():
@@ -32,7 +27,7 @@ def check_processed_cves():
 @retry(HTTPError, tries=5, delay=5, max_delay=10)
 def retrieve_cves(start_date, end_date, cves=None):
     print("Fetching cves online...")
-    files = os.listdir(CVE_PATH)
+    files = os.listdir(config.CVE_PATH)
     cves_not_found = []
     if cves is None:
         filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
@@ -68,24 +63,24 @@ def export_cve_references(cve_ref, start_date, end_date):
             pickle.dump(cve_ref, f)
 
 
-def import_cve_references(start_date, end_date):
-    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
-    with open(config.CVE_REFERENCES_PATH + filename, mode='rb') as f:
-        return pickle.load(f)
-
-
 def collect_cve(cve_result):
     cve = {'id': cve_result.id, 'published_date': cve_result.published, 'score': cve_result.score[1]}
     for des in cve_result.descriptions:
         if des.lang == 'en':
             cve['description'] = des.value
 
-    f = open(CVE_PATH + cve_result.id, 'wb')
+    f = open(config.CVE_PATH + cve_result.id, 'wb')
     pickle.dump(cve, f)
 
 
-def import_local_cve(filename):
-    f = open(CVE_PATH + filename, 'rb')
+def import_cve_references(start_date, end_date):
+    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    with open(config.CVE_REFERENCES_PATH + filename, mode='rb') as f:
+        return pickle.load(f)
+
+
+def import_cve_data(path, filename):
+    f = open(os.path.join(path, filename), 'rb')
     return pickle.load(f)
 
 
@@ -94,13 +89,8 @@ def import_cve_files():
 
 
 def export_processed_cve(filename, cve):
-    with open(PROCESSED_CVE_PATH + filename, mode='wb') as f:
+    with open(config.PROCESSED_CVE_PATH + filename, mode='wb') as f:
         pickle.dump(cve, f)
-
-
-def import_processed_cve(filename):
-    f = open(config.PROCESSED_CVE_PATH + filename, 'rb')
-    return pickle.load(f)
 
 
 # Method for constructing a regex to find a format of the type CVE-YEAR-ID (e.g., CVE-2022-1536) in tweets.
