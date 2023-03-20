@@ -12,14 +12,14 @@ from sklearn import utils
 from langdetect import detect, LangDetectException
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
-MODEL_PATH = 'data/models/'
-RESULTS_PATH = 'data/results/'
 MINIMUM_SCORE = 0.42
 
 
-def check_results(start_date):
-    results = os.listdir(RESULTS_PATH)
-    return start_date.strftime("%d-%m-%Y") + '.json' in results
+def check_results(start_date, end_date):
+    results = os.listdir(config.RESULTS_PATH)
+    f_name_chunk = config.filename_chunk.format(start_date.strftime(config.DATE_FORMAT),
+                                                end_date.strftime(config.DATE_FORMAT))
+    return f_name_chunk + '.json' in results
 
 
 def check_data(start, end):
@@ -266,55 +266,58 @@ def evaluate_model(f_name_chunk, model):
 
 # search for all the most similar tweets on which the model was trained
 def find_similarity(start_date, end_date):
-    filename_chunk = config.filename_chunk.format(start_date.strftime(config.DATE_FORMAT),
-                                                  end_date.strftime(config.DATE_FORMAT))
-    model = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.FINAL_MODEL.format(filename_chunk)))
+    if check_results(start_date, end_date):
+        print("The results for the dates entered can be found in data/results folder")
+    else:
+        filename_chunk = config.filename_chunk.format(start_date.strftime(config.DATE_FORMAT),
+                                                      end_date.strftime(config.DATE_FORMAT))
+        model = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.FINAL_MODEL.format(filename_chunk)))
 
-    results = []
-    for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_PATH):
-        for content in tweet.import_data(config.PROCESSED_TWEET_PATH, file)[:2]:
-            try:
-                language = detect(" ".join(content['parsed_text']))
-                if language == 'en':
-                    infer_vector = model.infer_vector(content['parsed_text'])
-                    model_result = model.dv.most_similar(infer_vector, topn=1)
+        results = []
+        for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_PATH):
+            for content in tweet.import_data(config.PROCESSED_TWEET_PATH, file)[:2]:
+                try:
+                    language = detect(" ".join(content['parsed_text']))
+                    if language == 'en':
+                        infer_vector = model.infer_vector(content['parsed_text'])
+                        model_result = model.dv.most_similar(infer_vector, topn=1)
 
-                    # select all tweets above a threshold
-                    if model_result[0][1] >= MINIMUM_SCORE:
-                        result = {'predicted_tweet': model_result[0][0],
-                                  'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
-                                  'score': model_result[0][1]}
-                        results.append(result)
-            except LangDetectException:
-                pass
+                        # select all tweets above a threshold
+                        if model_result[0][1] >= MINIMUM_SCORE:
+                            result = {'predicted_tweet': model_result[0][0],
+                                      'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
+                                      'score': model_result[0][1]}
+                            results.append(result)
+                except LangDetectException:
+                    pass
 
-    try:
-        filename = os.path.join(config.TRAIN_DATA_PATH, filename_chunk)
-        file = open(filename, 'rb')
-        data = pickle.load(file)
-    except FileNotFoundError as e:
-        print(e)
-        exit(0)
+        try:
+            filename = os.path.join(config.TRAIN_DATA_PATH, filename_chunk)
+            file = open(filename, 'rb')
+            data = pickle.load(file)
+        except FileNotFoundError as e:
+            print(e)
+            exit(0)
 
-    for r in results:
-        predicted_tweet = data[r['predicted_tweet']]
-        r['CVE-ID'] = predicted_tweet['tag']
-        if predicted_tweet['type'] == 't':
-            r['predicted_tweet'] = tweet.import_data(config.PROCESSED_TWEET_CVE_PATH,
-                                                     predicted_tweet['file'])[predicted_tweet['index']]
-            del r['predicted_tweet']['parsed_text']
-        else:
-            r['predicted_tweet'] = cve.import_cve_data(config.PROCESSED_CVE_PATH, predicted_tweet['file'])
-            del r['predicted_tweet']['parsed_text']
+        for r in results:
+            predicted_tweet = data[r['predicted_tweet']]
+            r['CVE-ID'] = predicted_tweet['tag']
+            if predicted_tweet['type'] == 't':
+                r['predicted_tweet'] = tweet.import_data(config.PROCESSED_TWEET_CVE_PATH,
+                                                         predicted_tweet['file'])[predicted_tweet['index']]
+                del r['predicted_tweet']['parsed_text']
+            else:
+                r['predicted_tweet'] = cve.import_cve_data(config.PROCESSED_CVE_PATH, predicted_tweet['file'])
+                del r['predicted_tweet']['parsed_text']
 
-    print('Found {} with minimum score'.format(len(results)))
-    if len(results) > 0:
-        results.sort(key=lambda item: item['score'], reverse=False)
-        with open(os.path.join(config.RESULTS_PATH, filename_chunk + '.json'), 'w') as f:
-            json.dump(results, f, indent=2)
-        results.clear()
+        print('Found {} with minimum score'.format(len(results)))
+        if len(results) > 0:
+            results.sort(key=lambda item: item['score'], reverse=False)
+            with open(os.path.join(config.RESULTS_PATH, filename_chunk + '.json'), 'w') as f:
+                json.dump(results, f, indent=2)
+            results.clear()
 
-    print("Process finished. You can consult outputs in data/results folder")
+        print("Process finished. You can consult outputs in data/results folder")
 
 
 def export_dataset(path, filename, data):
