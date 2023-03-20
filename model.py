@@ -8,14 +8,13 @@ import config
 import numpy as np
 import multiprocessing
 
-from tqdm import tqdm
 from sklearn import utils
-from scipy.spatial import distance
+from langdetect import detect, LangDetectException
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
 MODEL_PATH = 'data/models/'
 RESULTS_PATH = 'data/results/'
-MINIMUM_SCORE = 0.042
+MINIMUM_SCORE = 0.42
 
 
 def check_results(start_date):
@@ -225,7 +224,6 @@ def create_model(start_date, end_date):
         model = Doc2Vec(dm=1, dm_mean=1, workers=cores, **results['params'])
 
     model.build_vocab([x['document'] for x in train_data.values()])
-
     model.train([x['document'] for x in train_data.values()], total_examples=model.corpus_count,
                 epochs=model.epochs, report_delay=30 * 60)
 
@@ -251,9 +249,7 @@ def evaluate_model(f_name_chunk, model):
 
     for d in data:
         vector = model.infer_vector(d['parsed_text'])
-
         result = model.dv.most_similar(vector, topn=1)
-
         dbow_element = {'predicted_tweet_id': result[0][0], 'source_tag': d['tag'],
                         'score': result[0][1]}
         results.append(dbow_element)
@@ -267,34 +263,55 @@ def evaluate_model(f_name_chunk, model):
     print(f"MODEL MEAN SCORE: {np.mean(scores)}")
 
 
-# find similarity between tweets with cve and a tweet
-def find_similarity(start_date):
-    results = []
-    tweets_cve = tweet.import_processed_tweet_cve()
-    tweet_files = tweet.get_temp_window_files(start_date)
-    for filename in tweet_files:
-        for tweet_content in tqdm(tweet.import_processed_tweet_content(filename)):
-            sample_tweet = tweet_content
-            for parsed_text in tweet_content['parsed_text']:
-                for tweet_cve in tweets_cve:
-                    model = Doc2Vec.load(MODEL_PATH + tweet_cve + '.model')
-                    for content in tweet.import_processed_tweet_cve_content(tweet_cve):
-                        target_tweet = content
-                        for text in content['parsed_text']:
-                            vec1 = model.infer_vector(text)
-                            vec2 = model.infer_vector(parsed_text)
-                            vector_distance = distance.euclidean(vec1, vec2)
-                            if vector_distance < MINIMUM_SCORE:
-                                distance_dict = {'target_tweet': target_tweet,
-                                                 'sample_tweet': sample_tweet, 'score': vector_distance}
-                                results.append(distance_dict)
+# search for all the most similar tweets on which the model was trained
+def find_similarity(start_date, end_date):
+    filename_chunk = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    model = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.FINAL_MODEL + "_" + filename_chunk
+                                      + '.model'))
 
-        print('Found {} with minimum score'.format(len(results)))
-        if len(results) > 0:
-            results.sort(key=lambda item: item['score'], reverse=False)
-            with open(RESULTS_PATH + filename, 'w') as file:
-                json.dump(results, file)
-            results.clear()
+    results = []
+    for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_PATH):
+        for content in tweet.import_data(config.PROCESSED_TWEET_PATH, file)[:2]:
+            try:
+                language = detect(" ".join(content['parsed_text']))
+                if language == 'en':
+                    infer_vector = model.infer_vector(content['parsed_text'])
+                    model_result = model.dv.most_similar(infer_vector, topn=1)
+
+                    # select all tweets above a threshold
+                    if model_result[0][1] >= MINIMUM_SCORE:
+                        result = {'predicted_tweet': model_result[0][0],
+                                  'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
+                                  'score': model_result[0][1]}
+                        results.append(result)
+            except LangDetectException:
+                pass
+
+    try:
+        filename = os.path.join(config.TRAIN_DATA_PATH, filename_chunk)
+        file = open(filename, 'rb')
+        data = pickle.load(file)
+    except FileNotFoundError as e:
+        print(e)
+        exit(0)
+
+    for r in results:
+        predicted_tweet = data[r['predicted_tweet']]
+        r['CVE-ID'] = predicted_tweet['tag']
+        if predicted_tweet['type'] == 't':
+            r['predicted_tweet'] = tweet.import_data(config.PROCESSED_TWEET_CVE_PATH,
+                                                     predicted_tweet['file'])[predicted_tweet['index']]
+            del r['predicted_tweet']['parsed_text']
+        else:
+            r['predicted_tweet'] = cve.import_cve_data(config.PROCESSED_CVE_PATH, predicted_tweet['file'])
+            del r['predicted_tweet']['parsed_text']
+
+    print('Found {} with minimum score'.format(len(results)))
+    if len(results) > 0:
+        results.sort(key=lambda item: item['score'], reverse=False)
+        with open(os.path.join(config.RESULTS_PATH, filename_chunk + '.json'), 'w') as f:
+            json.dump(results, f, indent=2)
+        results.clear()
 
     print("Process finished. You can consult outputs in data/results folder")
 
