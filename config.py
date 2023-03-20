@@ -48,6 +48,7 @@ HYPERPARAMETERS_FILE = "hyperparameters.json"
 HYPERPARAMETERS_PATH = DATA_PATH + HYPERPARAMETERS_FILE
 
 # MODELS NAME
-MODEL_DBOW_BASE = "doc2vec_dbow_base"
-MODEL_DM_BASE = "doc2vec_dm_base"
-FINAL_MODEL = "final_model"
+filename_chunk = "{0}_{1}"
+MODEL_DBOW_BASE = "doc2vec_dbow_base_{}.model"
+MODEL_DM_BASE = "doc2vec_dm_base_{}.model"
+FINAL_MODEL = "final_model_{}.model"

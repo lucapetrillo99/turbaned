@@ -23,7 +23,8 @@ def check_results(start_date):
 
 
 def check_data(start, end):
-    filename = start.strftime(config.DATE_FORMAT) + "_" + end.strftime(config.DATE_FORMAT)
+    filename = config.filename_chunk.format(start.strftime(config.DATE_FORMAT),
+                                            end.strftime(config.DATE_FORMAT))
     try:
         open(os.path.join(config.TRAIN_DATA_PATH, filename), "rb")
         return True
@@ -32,11 +33,11 @@ def check_data(start, end):
 
 
 def check_model(start_date, end_date):
-    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
-
+    filename = config.filename_chunk.format(start_date.strftime(config.DATE_FORMAT),
+                                            end_date.strftime(config.DATE_FORMAT))
     try:
-        Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + '_' + filename + '.model'))
-        Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + '_' + filename + '.model'))
+        Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE.format(filename)))
+        Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE.format(filename)))
         return True
     except FileNotFoundError:
         return False
@@ -85,7 +86,8 @@ def split_dataset(start_date, end_date):
         tr['document'] = TaggedDocument(tr['parsed_text'], [i])
         train_data[i] = tr
 
-    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
+    filename = config.filename_chunk.format(start_date.strftime(config.DATE_FORMAT),
+                                            end_date.strftime(config.DATE_FORMAT))
     export_dataset(config.TRAIN_DATA_PATH, filename, train_data)
     export_dataset(config.TEST_DATA_PATH, filename, test_data)
     export_dataset(config.VALIDATION_DATA_PATH, filename, validation_data)
@@ -95,8 +97,9 @@ def create_models(start_date, end_date):
     print('Creating models ...')
 
     split_dataset(start_date, end_date)
-    filename = os.path.join(config.TRAIN_DATA_PATH,
-                            start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT))
+    filename_chunk = config.filename_chunk.format(start_date.strftime(config.DATE_FORMAT),
+                                                  end_date.strftime(config.DATE_FORMAT))
+    filename = os.path.join(config.TRAIN_DATA_PATH, filename_chunk)
     file = open(filename, 'rb')
     train_data = pickle.load(file)
     cores = multiprocessing.cpu_count()
@@ -114,20 +117,18 @@ def create_models(start_date, end_date):
     model_dm.train([x['document'] for x in train_data.values()], total_examples=model_dm.corpus_count,
                    epochs=model_dm.epochs, report_delay=30 * 60)
 
-    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
-    model_dbow.save(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + '_' + filename + '.model'))
-    model_dm.save(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE + '_' + filename + '.model'))
+    model_dbow.save(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE.format(filename_chunk)))
+    model_dm.save(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE.format(filename_chunk)))
 
     file.close()
 
-    evaluate_models(filename, print_results=True)
+    evaluate_models(filename_chunk, print_results=True)
 
 
 def evaluate_models(f_name_chunk, print_results, dbow_model=None, dm_model=None):
     if dbow_model is None and dm_model is None:
-        model_dbow = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE + "_" + f_name_chunk
-                                               + '.model'))
-        model_dmm = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE + "_" + f_name_chunk + '.model'))
+        model_dbow = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE.format(f_name_chunk)))
+        model_dmm = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE.format(f_name_chunk)))
     else:
         model_dbow = dbow_model
         model_dmm = dm_model
@@ -205,8 +206,9 @@ def create_model(start_date, end_date):
     print('Creating model ...')
 
     try:
-        filename = os.path.join(config.TRAIN_DATA_PATH,
-                                start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT))
+        filename_chunk = config.filename_chunk.format(start_date.strftime(config.DATE_FORMAT),
+                                                      end_date.strftime(config.DATE_FORMAT))
+        filename = os.path.join(config.TRAIN_DATA_PATH, filename_chunk)
         file = open(filename, 'rb')
         train_data = pickle.load(file)
     except FileNotFoundError as e:
@@ -227,8 +229,7 @@ def create_model(start_date, end_date):
     model.train([x['document'] for x in train_data.values()], total_examples=model.corpus_count,
                 epochs=model.epochs, report_delay=30 * 60)
 
-    filename = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
-    model.save(os.path.join(config.MODEL_PATH, config.FINAL_MODEL + '_' + filename + '.model'))
+    model.save(os.path.join(config.MODEL_PATH, config.FINAL_MODEL.format(filename_chunk)))
 
     file.close()
 
@@ -265,9 +266,9 @@ def evaluate_model(f_name_chunk, model):
 
 # search for all the most similar tweets on which the model was trained
 def find_similarity(start_date, end_date):
-    filename_chunk = start_date.strftime(config.DATE_FORMAT) + "_" + end_date.strftime(config.DATE_FORMAT)
-    model = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.FINAL_MODEL + "_" + filename_chunk
-                                      + '.model'))
+    filename_chunk = config.filename_chunk.format(start_date.strftime(config.DATE_FORMAT),
+                                                  end_date.strftime(config.DATE_FORMAT))
+    model = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.FINAL_MODEL.format(filename_chunk)))
 
     results = []
     for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_PATH):
@@ -317,5 +318,5 @@ def find_similarity(start_date, end_date):
 
 
 def export_dataset(path, filename, data):
-    with open(path + filename, mode='wb') as f:
+    with open(os.path.join(path, filename), mode='wb') as f:
         pickle.dump(data, f)
