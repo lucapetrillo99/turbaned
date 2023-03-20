@@ -233,7 +233,7 @@ def create_model(start_date, end_date):
 
     file.close()
 
-    evaluate_model(filename, model)
+    evaluate_model(filename_chunk, model)
 
 
 def evaluate_model(f_name_chunk, model):
@@ -275,7 +275,7 @@ def find_similarity(start_date, end_date):
 
         results = []
         for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_PATH):
-            for content in tweet.import_data(config.PROCESSED_TWEET_PATH, file)[:2]:
+            for content in tweet.import_data(config.PROCESSED_TWEET_PATH, file):
                 try:
                     language = detect(" ".join(content['parsed_text']))
                     if language == 'en':
