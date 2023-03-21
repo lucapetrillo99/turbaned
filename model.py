@@ -162,8 +162,8 @@ def evaluate_models(f_name_chunk, print_results, dbow_model=None, dm_model=None)
     dbow_positives, dm_positives = get_results(f_name_chunk, dbow_results, dm_results)
 
     if print_results:
-        print(f"DBOW ACCURACY: {dbow_positives / len(data)}")
-        print(f"DM ACCURACY: {dm_positives / len(data)}")
+        print("DBOW ACCURACY: {:.1%}".format(dbow_positives / len(data)))
+        print("DM ACCURACY: {:.1%}".format(dbow_positives / len(data)))
         print(f"DBOW POSITIVES: {dbow_positives}")
         print(f"DM POSITIVES: {dm_positives}")
         print(f"TOTAL: {len(data)}")
@@ -230,7 +230,6 @@ def create_model(start_date, end_date):
                 epochs=model.epochs, report_delay=30 * 60)
 
     model.save(os.path.join(config.MODEL_PATH, config.FINAL_MODEL.format(filename_chunk)))
-
     file.close()
 
     evaluate_model(filename_chunk, model)
@@ -258,7 +257,7 @@ def evaluate_model(f_name_chunk, model):
 
     positives = get_results(f_name_chunk, results)
 
-    print(f"MODEL ACCURACY: {positives / len(data)}")
+    print("MODEL ACCURACY {:.1%}".format(positives / len(data)))
     print(f"POSITIVES: {positives}")
     print(f"TOTAL: {len(data)}")
     print(f"MODEL MEAN SCORE: {np.mean(scores)}")
