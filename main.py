@@ -21,29 +21,48 @@ def check_valid_arguments(argument):
         return True
 
 
-def check_valid_dates(inserted_dates):
-    is_valid = True
-    valid_dates = []
-    if len(inserted_dates) > 2:
-        is_valid = False
+def check_dates_format(inserted_dates):
+    if len(inserted_dates) == 0:
+        print("You must insert at least a starting date...")
+        exit(0)
+    elif len(inserted_dates) > 2:
+        print("You must insert at least a starting date...")
+        exit(0)
     elif len(inserted_dates) == 1:
         try:
-            valid_dates.append(datetime.strptime(inserted_dates[0], config.DATE_FORMAT))
+            datetime.strptime(inserted_dates[0], config.DATE_FORMAT)
         except ValueError:
-            print("Incorrect data format, should be YYYY-MM-DD, exiting...")
-            is_valid = False
+            print("Incorrect data format, should be DD-MM-YYYY, exiting...")
+            exit(0)
     else:
         for date in inserted_dates:
             try:
-                valid_dates.append(datetime.strptime(date, config.DATE_FORMAT))
+                datetime.strptime(date, config.DATE_FORMAT)
             except ValueError:
                 print("Incorrect data format, should be YYYY-MM-DD, exiting...")
-                is_valid = False
 
-    if is_valid:
-        return valid_dates
+
+def check_dates_order(inserted_dates):
+    curr_date = datetime.now()
+    if len(inserted_dates) > 1:
+        if inserted_dates[0] > curr_date or inserted_dates[1] > curr_date:
+            print("Wrong date, exiting...")
+            exit(0)
+        elif inserted_dates[0] > inserted_dates[1]:
+            print("Wrong date order, exiting...")
+            exit(0)
+        else:
+            s_date = inserted_dates[0]
+            e_date = inserted_dates[1]
     else:
-        return False
+        if inserted_dates[0] > curr_date:
+            print("Wrong date, exiting...")
+            exit(0)
+        else:
+            s_date = inserted_dates[0]
+            e_date = curr_date - timedelta(days=1)
+
+    return s_date, e_date
 
 
 def start_script(start, end):
@@ -66,9 +85,6 @@ def start_script(start, end):
         except FileExistsError:
             pass
 
-    if end is None:
-        end = current_date - timedelta(days=1)
-
     print(
         "Start analysis from: {0} to {1}".format(start.strftime(config.DATE_FORMAT), end.strftime(config.DATE_FORMAT)))
     analysis.start_analysis(start_date, end)
@@ -89,28 +105,10 @@ if __name__ == '__main__':
         print("Too many arguments, exiting...")
         exit(0)
     elif dates:
-        values = check_valid_dates(inserted_dates=dates)
-        if values:
-            if len(values) > 1:
-                if values[0] > current_date or values[1] > current_date:
-                    print("Wrong date, exiting...")
-                    exit(0)
-                elif values[0] > values[1]:
-                    print("Wrong date order, exiting...")
-                    exit(0)
-                else:
-                    start_date = values[0]
-                    end_date = values[1]
-            else:
-                if values[0] > current_date:
-                    print("Wrong date, exiting...")
-                    exit(0)
-                else:
-                    start_date = values[0]
-                    end_date = current_date
-            start_script(start_date, end_date)
-        else:
-            exit(0)
+        check_dates_format(inserted_dates=dates)
+        start_date, end_date = check_dates_order(dates)
+        start_script(start_date, end_date)
+
     elif check_valid_arguments(args):
         if args.days_ago == 0 and args.months_ago == 0:
             start_date = current_date
