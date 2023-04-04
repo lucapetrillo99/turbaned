@@ -15,8 +15,6 @@ from langdetect import detect, LangDetectException
 
 MAX_TWEET = 1000
 URL_REGEX = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
-CVE_PATH = 'data/cve/'
-lemmatizer = nltk.stem.WordNetLemmatizer()
 w_tokenizer = TweetTokenizer()
 cve_regex = cve.build_regex()
 
@@ -28,6 +26,7 @@ def preprocess_tweets_cve(start_date, end_date):
     tweet_cve_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], config.DATE_FORMAT))
     with ThreadPoolExecutor() as pool:
         for idx, file in enumerate(tweet_cve_files):
+            print(file)
             for content in tqdm(tweet.import_data(config.FILTERED_TWEET_PATH, file)):
                 content['parsed_text'] = pool.submit(clean_tweet_text, content['text']).result()
                 if len(content['parsed_text']) > 0:
@@ -43,14 +42,12 @@ def preprocess_tweets(start_date, end_date):
     tweet_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
     with ThreadPoolExecutor() as pool:
         for file in tweet_files:
+            print(file)
             for index, content in enumerate(tqdm(tweet.import_local_tweets(file))):
                 actual_tweet = {'file': file, 'index': index, 'id': content['id'],
                                 'parsed_text': pool.submit(clean_tweet_text, content['text']).result()}
                 if len(actual_tweet['parsed_text']) > 0:
                     tweets.append(actual_tweet)
-                if len(tweets) > MAX_TWEET:
-                    tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
-                    tweets = []
             if len(tweets) > 0:
                 tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
                 tweets = []
@@ -62,6 +59,7 @@ def preprocess_cves(cve_files=None):
 
     with ThreadPoolExecutor() as pool:
         for file in tqdm(cve_files):
+            print(file)
             content = cve.import_cve_data(config.CVE_PATH, file)
             content['parsed_text'] = pool.submit(clean_cve_text, content['description']).result()
             cve.export_processed_cve(content['id'], content)
@@ -101,4 +99,5 @@ def clean_cve_text(text):
 
     # remove duplicate consecutive words
     new_text = re.sub(r'\b(\w+)( \1\b)+', r'\1', new_text)
+
     return [word for word in w_tokenizer.tokenize(new_text)]
