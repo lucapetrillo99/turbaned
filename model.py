@@ -8,11 +8,13 @@ import config
 import numpy as np
 import multiprocessing
 
+from tqdm import tqdm
 from sklearn import utils
 from langdetect import detect, LangDetectException
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
-MINIMUM_SCORE = 0.42
+MINIMUM_SCORE = 0.85
+MAX_VALUES = 10000
 
 
 def check_results(start_date, end_date):
@@ -274,7 +276,8 @@ def find_similarity(start_date, end_date):
 
         results = []
         for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_PATH):
-            for content in tweet.import_data(config.PROCESSED_TWEET_PATH, file):
+            print(file)
+            for content in tqdm(tweet.import_data(config.PROCESSED_TWEET_PATH, file)):
                 try:
                     language = detect(" ".join(content['parsed_text']))
                     if language == 'en':
@@ -287,34 +290,16 @@ def find_similarity(start_date, end_date):
                                       'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
                                       'score': model_result[0][1]}
                             results.append(result)
+
                 except LangDetectException:
                     pass
 
-        try:
-            filename = os.path.join(config.TRAIN_DATA_PATH, filename_chunk)
-            file = open(filename, 'rb')
-            data = pickle.load(file)
-        except FileNotFoundError as e:
-            print(e)
-            exit(0)
+                if len(results) >= MAX_VALUES:
+                    export_results(results, filename_chunk)
+                    results = []
 
-        for r in results:
-            predicted_tweet = data[r['predicted_tweet']]
-            r['CVE-ID'] = predicted_tweet['tag']
-            if predicted_tweet['type'] == 't':
-                r['predicted_tweet'] = tweet.import_data(config.PROCESSED_TWEET_CVE_PATH,
-                                                         predicted_tweet['file'])[predicted_tweet['index']]
-                del r['predicted_tweet']['parsed_text']
-            else:
-                r['predicted_tweet'] = cve.import_cve_data(config.PROCESSED_CVE_PATH, predicted_tweet['file'])
-                del r['predicted_tweet']['parsed_text']
-
-        print('Found {} with minimum score'.format(len(results)))
         if len(results) > 0:
-            results.sort(key=lambda item: item['score'], reverse=False)
-            with open(os.path.join(config.RESULTS_PATH, filename_chunk + '.json'), 'w') as f:
-                json.dump(results, f, indent=2)
-            results.clear()
+            export_results(results, filename_chunk)
 
         print("Process finished. You can consult outputs in data/results folder")
 
@@ -322,3 +307,38 @@ def find_similarity(start_date, end_date):
 def export_dataset(path, filename, data):
     with open(os.path.join(path, filename), mode='wb') as f:
         pickle.dump(data, f)
+
+
+def export_results(results, filename_chunk):
+    try:
+        filename = os.path.join(config.TRAIN_DATA_PATH, filename_chunk)
+        file = open(filename, 'rb')
+        data = pickle.load(file)
+    except FileNotFoundError as e:
+        print(e)
+        exit(0)
+
+    for result in results:
+        predicted_tweet = data[result['predicted_tweet']]
+        result['CVE-ID'] = predicted_tweet['tag']
+        if predicted_tweet['type'] == 't':
+            result['predicted_tweet'] = tweet.import_data(config.PROCESSED_TWEET_CVE_PATH,
+                                                          predicted_tweet['file'])[predicted_tweet['index']]
+            del result['predicted_tweet']['parsed_text']
+        else:
+            result['predicted_tweet'] = cve.import_cve_data(config.PROCESSED_CVE_PATH, predicted_tweet['file'])
+            del result['predicted_tweet']['parsed_text']
+
+    filename = os.path.join(config.RESULTS_PATH, filename_chunk + '.json')
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
+            try:
+                existing_data = json.load(f)
+            except ValueError:
+                existing_data = []
+    else:
+        existing_data = []
+
+    with open(filename, 'w') as f:
+        existing_data.extend(results)
+        json.dump(existing_data, f, indent=2)
