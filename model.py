@@ -204,7 +204,9 @@ def get_results(f_chunk, dbow_results, dm_results=None):
         return positives
 
 
-def create_model(start_date, end_date):
+def create_model(start_date, end_date, target_model=None):
+    model = None
+    cores = multiprocessing.cpu_count()
     print('Creating model ...')
 
     try:
@@ -217,15 +219,22 @@ def create_model(start_date, end_date):
         print(e)
         exit(0)
 
-    with open(os.path.join(config.MODEL_PATH, "hyperparameters"), "rb") as f:
-        results = pickle.load(f)
-
-    cores = multiprocessing.cpu_count()
-
-    if results['model'] == 'dbow':
-        model = Doc2Vec(dm=0, workers=cores, **results['params'])
+    if target_model:
+        if target_model == 'dbow':
+            model = Doc2Vec(dm=0, workers=cores, **config.common_kwargs)
+        else:
+            model = Doc2Vec(dm=1, dm_mean=1, workers=cores, **config.common_kwargs)
     else:
-        model = Doc2Vec(dm=1, dm_mean=1, workers=cores, **results['params'])
+        try:
+            with open(os.path.join(config.MODEL_PATH, "hyperparameters"), "rb") as f:
+                results = pickle.load(f)
+
+            if results['model'] == 'dbow':
+                model = Doc2Vec(dm=0, workers=cores, **results['params'])
+            else:
+                model = Doc2Vec(dm=1, dm_mean=1, workers=cores, **results['params'])
+        except FileNotFoundError as e:
+            print(e)
 
     model.build_vocab([x['document'] for x in train_data.values()])
     model.train([x['document'] for x in train_data.values()], total_examples=model.corpus_count,
