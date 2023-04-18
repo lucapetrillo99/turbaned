@@ -45,7 +45,7 @@ def collect_tweets(folder_name, response):
         try:
             file = tarfile.open(fileobj=response.raw, mode="r|gz")
             file.extractall(path=TEMP_TWEET_PATH)
-            subprocess.call(['sh', './collect_tweets.sh'])
+            subprocess.run(config.COLLECT_TWEETS)
         except ConnectionError:
             print("Connection error while getting tweets from database. Try later")
 

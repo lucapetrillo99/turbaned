@@ -31,6 +31,13 @@ MODEL_PATH = os.path.join(MODEL_DATA_PATH, 'model/')
 HYPERPARAMETERS_RESULTS_PATH = os.path.join(MODEL_DATA_PATH, 'hyperparameter_results/')
 RESULTS_PATH = os.path.join(DATA_PATH, 'results/')
 
+# SCRIPT FILES
+CLEAN_DATA = os.path.join('utils', 'clean_data.sh')
+CLEAN_PROCESSED_DATA = os.path.join('utils', 'clean_processed_data.sh')
+CLEAN_TWEETS = os.path.join('utils', 'clean_tweets.sh')
+COLLECT_TWEETS = os.path.join('utils', 'collect_tweets.sh')
+
+
 # SCRIPT DATA
 DATE_FORMAT = '%d-%m-%Y'
 
