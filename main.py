@@ -85,19 +85,15 @@ if __name__ == '__main__':
     parser = set_parser()
     args = parser.parse_args()
 
-    start_date = None
-    end_date = None
-    current_date = datetime.now()
-
     if args.start_analysis:
         start_date, end_date = check_inserted_dates(args.start_analysis)
         start_script(start_date, end_date)
     if args.hyperparameters_tuning:
-        start_date, end_date = check_inserted_dates(args.start_analysis)
+        start_date, end_date = check_inserted_dates(args.hyperparameters_tuning)
         hp.start_tuning(start_date, end_date)
     if args.create_model:
-        start_date, end_date = check_inserted_dates(args.start_analysis)
+        start_date, end_date = check_inserted_dates(args.create_model)
         model.create_model(start_date, end_date)
     if args.find_similarity:
-        start_date, end_date = check_inserted_dates(args.start_analysis)
+        start_date, end_date = check_inserted_dates(args.find_similarity)
         model.find_similarity(start_date, end_date)
