@@ -9,60 +9,29 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 
-def check_valid_arguments(argument):
-    if argument.days_ago < 0 and argument.months_ago < 0:
-        print("ERROR! days and months have to be positive, exiting...")
-        return False
-    elif argument.days_ago < 0:
-        print("ERROR! days have to be positive, exiting...")
-        return False
-    elif argument.months_ago < 0:
-        print("ERROR! months have to be positive, exiting...")
-        return False
-    else:
-        return True
-
-
-def check_dates_format(inserted_dates):
-    if len(inserted_dates) == 0:
-        print("You must insert at least a starting date...")
+def check_inserted_dates(inserted_dates):
+    print(inserted_dates)
+    try:
+        inserted_dates[0] = datetime.strptime(inserted_dates[0], config.DATE_FORMAT)
+        inserted_dates[1] = datetime.strptime(inserted_dates[1], config.DATE_FORMAT)
+    except ValueError:
+        print("Incorrect data format, should be DD-MM-YYYY, exiting...")
         exit(0)
-    elif len(inserted_dates) > 2:
-        print("You must insert at least a starting date...")
-        exit(0)
-    elif len(inserted_dates) == 1:
-        try:
-            datetime.strptime(inserted_dates[0], config.DATE_FORMAT)
-        except ValueError:
-            print("Incorrect data format, should be DD-MM-YYYY, exiting...")
-            exit(0)
-    else:
-        for date in inserted_dates:
-            try:
-                datetime.strptime(date, config.DATE_FORMAT)
-            except ValueError:
-                print("Incorrect data format, should be YYYY-MM-DD, exiting...")
 
-
-def check_dates_order(inserted_dates):
     curr_date = datetime.now()
-    if len(inserted_dates) > 1:
-        if inserted_dates[0] > curr_date or inserted_dates[1] > curr_date:
-            print("Wrong date, exiting...")
-            exit(0)
-        elif inserted_dates[0] > inserted_dates[1]:
-            print("Wrong date order, exiting...")
-            exit(0)
-        else:
-            s_date = inserted_dates[0]
-            e_date = inserted_dates[1]
+    if inserted_dates[0] > curr_date or inserted_dates[1] > curr_date:
+        print("The date cannot be bigger than today, exiting...")
+        exit(0)
+    elif inserted_dates[0] > inserted_dates[1]:
+        print("Wrong date order, exiting...")
+        exit(0)
     else:
-        if inserted_dates[0] > curr_date:
-            print("Wrong date, exiting...")
-            exit(0)
-        else:
-            s_date = inserted_dates[0]
+        s_date = inserted_dates[0]
+        if inserted_dates[1].strftime(config.DATE_FORMAT) == curr_date.strftime(config.DATE_FORMAT):
+            print("entro")
             e_date = curr_date - timedelta(days=1)
+        else:
+            e_date = inserted_dates[1]
 
     return s_date, e_date
 
@@ -121,18 +90,14 @@ if __name__ == '__main__':
     current_date = datetime.now()
 
     if args.start_analysis:
-        check_dates_format(inserted_dates=args.start_analysis)
-        start_date, end_date = check_dates_order(args.start_analysis)
+        start_date, end_date = check_inserted_dates(args.start_analysis)
         start_script(start_date, end_date)
     if args.hyperparameters_tuning:
-        check_dates_format(inserted_dates=args.start_analysis)
-        start_date, end_date = check_dates_order(args.start_analysis)
+        start_date, end_date = check_inserted_dates(args.start_analysis)
         hp.start_tuning(start_date, end_date)
     if args.create_model:
-        check_dates_format(inserted_dates=args.start_analysis)
-        start_date, end_date = check_dates_order(args.start_analysis)
+        start_date, end_date = check_inserted_dates(args.start_analysis)
         model.create_model(start_date, end_date)
     if args.find_similarity:
-        check_dates_format(inserted_dates=args.start_analysis)
-        start_date, end_date = check_dates_order(args.start_analysis)
+        start_date, end_date = check_inserted_dates(args.start_analysis)
         model.find_similarity(start_date, end_date)
