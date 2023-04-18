@@ -1,7 +1,16 @@
 # SCRIPT INFO
-SCRIPT_USAGE = 'main.py [-h] [START_DATE] [END_DATE] [-d DAYS_AGO] [-m MONTHS_AGO]\n'
-SCRIPT_DESCRIPTION = 'You can enter a [START_DATE] of your choice and indicate an [END_DATE](optional). Otherwise you '\
-                     'can enter the number of [-d DAYS_AGO] or [-m MONTHS_AGO] to be analyzed starting from today. '
+DATA_ANALYSIS_DESCRIPTION = "Download and process tweets based on dates entered to create Doc2Vec models"
+MODELS_MANAGEMENT_DESCRIPTION = "Allows to manage models and choose the best one to use"
+RESULTS_DESCRIPTION = "Allows to obtain the results using the best model previously chosen"
+
+START_ANALYSIS_HELP = "start the analysis of the tweets"
+HP_TUNING_HELP = "performs hyperparameters tuning of the models created in the 'data analysis' phase"
+CREATE_MODEL_HELP = "creates model using the hyperparameters found in the 'hyperparameters tuning'. In case you did " \
+                    "not perform this last step, you can create the model using the default parameters by specifying " \
+                    "which one to train using the --model parameter"
+MODEL_HELP = "specifies which model to create using the --create-model parameter"
+FIND_SIMILARITY_HELP = "use the created model (--create-model) to find similar tweets above a threshold (defualt >= " \
+                       "0.85)"
 
 # SCRIPT DIRECTORIES
 DATA_PATH = 'data/'

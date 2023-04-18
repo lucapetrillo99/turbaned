@@ -2,6 +2,8 @@ import os
 import config
 import argparse
 import analysis
+import model
+import hyperparameters_tuning as hp
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -85,36 +87,52 @@ def start_script(start, end):
         except FileExistsError:
             pass
 
-    print(
-        "Start analysis from: {0} to {1}".format(start.strftime(config.DATE_FORMAT), end.strftime(config.DATE_FORMAT)))
+    print(f"Start analysis from: {start.strftime(config.DATE_FORMAT)} to {end.strftime(config.DATE_FORMAT)}")
     analysis.start_analysis(start_date, end)
 
 
+def set_parser():
+    args_parser = argparse.ArgumentParser()
+    data_analysis_group = args_parser.add_argument_group('data analysis', config.DATA_ANALYSIS_DESCRIPTION)
+    data_analysis_group.add_argument("-s", "--start-analysis", metavar=("start_date", "end_date"), required=False,
+                                     type=str, nargs=2, default=None, help=config.START_ANALYSIS_HELP)
+
+    models_management_group = args_parser.add_argument_group('models management', config.MODELS_MANAGEMENT_DESCRIPTION)
+    models_management_group.add_argument("-hp", "--hyperparameters-tuning", metavar=("start_date", "end_date"),
+                                         required=False, type=str, nargs=2, default=None, help=config.HP_TUNING_HELP)
+    models_management_group.add_argument("-c", "--create-model", metavar=("start_date", "end_date"), required=False,
+                                         type=str, nargs=2, default=None, help=config.CREATE_MODEL_HELP)
+    models_management_group.add_argument("-m", "--model", type=str, choices=["dbow", "dm"], default=None,
+                                         help=config.MODEL_HELP)
+
+    results_group = args_parser.add_argument_group('results', config.RESULTS_DESCRIPTION)
+    results_group.add_argument("-f", "--find-similarity", metavar=("start_date", "end_date"), required=False, type=str,
+                               nargs=2, default=None, help=config.FIND_SIMILARITY_HELP)
+
+    return args_parser
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(usage=config.SCRIPT_USAGE,
-                                     description=config.SCRIPT_DESCRIPTION)
-    parser.add_argument("-d", "--days-ago", required=False, type=int, default=0, help="Analyzed tweets of X days ago")
-    parser.add_argument("-m", "--months-ago", required=False, type=int, default=0,
-                        help="Analyzed tweets of X months ago")
-    args, dates = parser.parse_known_args()
+    parser = set_parser()
+    args = parser.parse_args()
+
     start_date = None
     end_date = None
     current_date = datetime.now()
 
-    if dates and (args.days_ago != 0 or args.months_ago != 0):
-        print("Too many arguments, exiting...")
-        exit(0)
-    elif dates:
-        check_dates_format(inserted_dates=dates)
-        start_date, end_date = check_dates_order(dates)
+    if args.start_analysis:
+        check_dates_format(inserted_dates=args.start_analysis)
+        start_date, end_date = check_dates_order(args.start_analysis)
         start_script(start_date, end_date)
-
-    elif check_valid_arguments(args):
-        if args.days_ago == 0 and args.months_ago == 0:
-            start_date = current_date
-        else:
-            start_date = (current_date - relativedelta(days=args.days_ago, months=args.months_ago,
-                                                       year=current_date.year))
-        start_script(start_date, end_date)
-    else:
-        exit(0)
+    if args.hyperparameters_tuning:
+        check_dates_format(inserted_dates=args.start_analysis)
+        start_date, end_date = check_dates_order(args.start_analysis)
+        hp.start_tuning(start_date, end_date)
+    if args.create_model:
+        check_dates_format(inserted_dates=args.start_analysis)
+        start_date, end_date = check_dates_order(args.start_analysis)
+        model.create_model(start_date, end_date)
+    if args.find_similarity:
+        check_dates_format(inserted_dates=args.start_analysis)
+        start_date, end_date = check_dates_order(args.start_analysis)
+        model.find_similarity(start_date, end_date)
