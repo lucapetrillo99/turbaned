@@ -6,11 +6,9 @@ import model
 import hyperparameters_tuning as hp
 
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
 
 
 def check_inserted_dates(inserted_dates):
-    print(inserted_dates)
     try:
         inserted_dates[0] = datetime.strptime(inserted_dates[0], config.DATE_FORMAT)
         inserted_dates[1] = datetime.strptime(inserted_dates[1], config.DATE_FORMAT)
@@ -36,8 +34,8 @@ def check_inserted_dates(inserted_dates):
     return s_date, e_date
 
 
-def start_script(start, end):
-    if not (os.path.exists('data')):
+def set_script_folders():
+    if not (os.path.exists(config.DATA_PATH)):
         try:
             os.mkdir(config.DATA_PATH)
             os.mkdir(config.CVE_PATH)
@@ -55,9 +53,6 @@ def start_script(start, end):
             os.mkdir(config.RESULTS_PATH)
         except FileExistsError:
             pass
-
-    print(f"Start analysis from: {start.strftime(config.DATE_FORMAT)} to {end.strftime(config.DATE_FORMAT)}")
-    analysis.start_analysis(start_date, end)
 
 
 def set_parser():
@@ -82,12 +77,15 @@ def set_parser():
 
 
 if __name__ == '__main__':
+    set_script_folders()
     parser = set_parser()
     args = parser.parse_args()
 
     if args.start_analysis:
         start_date, end_date = check_inserted_dates(args.start_analysis)
-        start_script(start_date, end_date)
+        print(f"Start analysis from: {start_date.strftime(config.DATE_FORMAT)} to "
+              f"{end_date.strftime(config.DATE_FORMAT)}")
+        analysis.start_analysis(start_date, end_date)
     if args.hyperparameters_tuning:
         start_date, end_date = check_inserted_dates(args.hyperparameters_tuning)
         hp.start_tuning(start_date, end_date)
