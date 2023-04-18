@@ -1,8 +1,8 @@
 import os
+import model
 import config
 import argparse
 import analysis
-import model
 import hyperparameters_tuning as hp
 
 from datetime import datetime, timedelta
