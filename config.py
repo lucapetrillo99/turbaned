@@ -63,6 +63,7 @@ common_kwargs = dict(
     vector_size=50, negative=5, hs=0, epochs=15, min_count=5
 )
 HYPERPARAMETERS_FILE = "hyperparameters.json"
+HYPERPARAMETERS_FOUND = os.path.join(MODEL_PATH, "hyperparameters")
 HYPERPARAMETERS_PATH = DATA_PATH + HYPERPARAMETERS_FILE
 
 # MODELS NAME

@@ -226,7 +226,7 @@ def create_model(start_date, end_date, target_model=None):
             model = Doc2Vec(dm=1, dm_mean=1, workers=cores, **config.common_kwargs)
     else:
         try:
-            with open(os.path.join(config.MODEL_PATH, "hyperparameters"), "rb") as f:
+            with open(config.HYPERPARAMETERS_FOUND, "rb") as f:
                 results = pickle.load(f)
 
             if results['model'] == 'dbow':

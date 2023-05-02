@@ -138,7 +138,8 @@ def tuning_models(f_chunk):
 
 def hyperparameters_tuning(start, end):
     global file_chunk
-    file_chunk = start.strftime(config.DATE_FORMAT) + "_" + end.strftime(config.DATE_FORMAT)
+    file_chunk = config.filename_chunk.format(start.strftime(config.DATE_FORMAT),
+                                                end.strftime(config.DATE_FORMAT))
 
     try:
         os.mkdir(config.HYPERPARAMETERS_RESULTS_PATH)
@@ -159,7 +160,7 @@ def hyperparameters_tuning(start, end):
         best_res['model'] = 'dm'
         best_res['params'] = dm_res[dm_best]['params']
 
-    with open(os.path.join(config.MODEL_PATH, "hyperparameters"), "wb") as f:
+    with open(config.HYPERPARAMETERS_FOUND, "wb") as f:
         pickle.dump(best_res, f)
 
     print(f"BEST DBOW ACCURACY: {dbow_res[dbow_best]['accuracy']}, PARAMS: {dbow_res[dbow_best]['params']}")
