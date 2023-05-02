@@ -20,7 +20,7 @@ def set_parameters(f_chunk):
     global train_data, val_data
 
     try:
-        h_file = open(config.HYPERPARAMETERS_PATH, 'rb')
+        h_file = open(config.HYPERPARAMETERS_FILE, 'rb')
         data = json.load(h_file)
         dbow_vector_size = data['dbow_vector_size']
         dm_vector_size = data['dm_vector_size']
