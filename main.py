@@ -88,7 +88,7 @@ if __name__ == '__main__':
         analysis.start_analysis(start_date, end_date)
     if args.hyperparameters_tuning:
         start_date, end_date = check_inserted_dates(args.hyperparameters_tuning)
-        hp.start_tuning(start_date, end_date)
+        hp.hyperparameters_tuning(start_date, end_date)
     if args.create_model:
         start_date, end_date = check_inserted_dates(args.create_model)
         if args.model:

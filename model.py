@@ -295,8 +295,8 @@ def find_similarity(start_date, end_date):
 
                         # select all tweets above a threshold
                         if model_result[0][1] >= MINIMUM_SCORE:
-                            result = {'predicted_tweet': model_result[0][0],
-                                      'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
+                            result = {'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
+                                      'predicted_tweet': model_result[0][0],
                                       'score': model_result[0][1]}
                             results.append(result)
 
