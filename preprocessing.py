@@ -2,7 +2,6 @@ import os
 import re
 
 import cve
-import nltk
 import tweet
 import config
 import gensim
@@ -54,42 +53,41 @@ def preprocess_tweets(start_date, end_date):
 
 
 def preprocess_cves(cve_files=None):
+    print('Cleaning text of cve...')
     if cve_files is None:
         cve_files = os.listdir(config.CVE_PATH)
 
     with ThreadPoolExecutor() as pool:
         for file in tqdm(cve_files):
-            print(file)
             content = cve.import_cve_data(config.CVE_PATH, file)
             content['parsed_text'] = pool.submit(clean_cve_text, content['description']).result()
             cve.export_processed_cve(content['id'], content)
 
 
 def clean_tweet_text(text):
-    final_words = []
+    # remove the url present in the text
+    text = re.sub(URL_REGEX, '', text)
+
+    # remove mentions of Twitter accounts (eg. @username)
+    text = re.sub(r'@\w+', '', text)
+
+    # remove hashtags
+    text = re.sub(r'#\w+', '', text)
+
+    text = re.sub(cve_regex, '', text)
+    text = re.sub('[^a-zA-Z]', ' ', text)
+    text = re.sub(r'\s+', ' ', text)
+
+    # remove duplicate consecutive words
+    text = re.sub(r'\b(\w+)( \1\b)+', r'\1', text)
+
     try:
         language = detect(text)
         if language == 'en':
-
-            # remove the url present in the text
-            text = re.sub(URL_REGEX, '', text)
-
-            # remove mentions of Twitter accounts (eg. @username)
-            text = re.sub(r'@\w+', '', text)
-
-            text = re.sub(cve_regex, '', text)
-            text = re.sub('[^a-zA-Z]', ' ', text)
-            text = re.sub(r'\s+', ' ', text)
-
-            # remove duplicate consecutive words
-            text = re.sub(r'\b(\w+)( \1\b)+', r'\1', text)
-
-            final_words = gensim.utils.simple_preprocess(text)
+            return gensim.utils.simple_preprocess(text)
 
     except LangDetectException:
         pass
-
-    return final_words
 
 
 def clean_cve_text(text):
