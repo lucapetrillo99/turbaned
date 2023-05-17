@@ -1,8 +1,8 @@
 #!/bin/bash
 
-PROCESSED_TWEET_CVE_PATH="data/processed/tweets_cve/"
-PROCESSED_TWEET_PATH="data/processed/tweet/"
-PROCESSED_CVE_PATH="data/processed/cve/"
+PROCESSED_TWEET_CVE_PATH="$(pwd)/data/processed/tweets_cve/"
+PROCESSED_TWEET_PATH="$(pwd)/data/processed/tweet/"
+PROCESSED_CVE_PATH="$(pwd)/data/processed/cve/"
 parameter=$1
 
 case $parameter in

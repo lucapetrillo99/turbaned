@@ -1,8 +1,8 @@
 #!/bin/bash
 
-FILTERED_TWEET_PATH='data/filtered_tweets/'
-CVE_REFERENCES_PATH='data/cve_references/'
-CVE_PATH='data/cve/'
+FILTERED_TWEET_PATH="$(pwd)/data/filtered_tweets/"
+CVE_REFERENCES_PATH="$(pwd)/data/cve_references/"
+CVE_PATH="$(pwd)/data/cve/"
 
 if [ -n "$(ls -A "$FILTERED_TWEET_PATH")" ]; then
   for file in "$FILTERED_TWEET_PATH"*; do

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 WORKING_PATH=$(pwd)
-DATA_PATH='data/temp/tweeterCrawler/json_db/'
+DATA_PATH="$(pwd)/data/temp/tweeterCrawler/json_db/"
 
-cd $DATA_PATH || {
+cd "$DATA_PATH" || {
   echo "Tweet folder does not exist"
   exit 1
 }
