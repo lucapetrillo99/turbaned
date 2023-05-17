@@ -28,7 +28,7 @@ def preprocess_tweets_cve(start_date, end_date):
             print(file)
             for content in tqdm(tweet.import_data(config.FILTERED_TWEET_PATH, file)):
                 content['parsed_text'] = pool.submit(clean_tweet_text, content['text']).result()
-                if len(content['parsed_text']) > 0:
+                if content['parsed_text']:
                     tweets_with_cve.append(content)
             tweet.export_processed_tweets(tweet_cve_files[idx], tweets_with_cve, cve=True)
             tweets_with_cve = []
@@ -45,7 +45,7 @@ def preprocess_tweets(start_date, end_date):
             for index, content in enumerate(tqdm(tweet.import_local_tweets(file))):
                 actual_tweet = {'file': file, 'index': index, 'id': content['id'],
                                 'parsed_text': pool.submit(clean_tweet_text, content['text']).result()}
-                if len(actual_tweet['parsed_text']) > 0:
+                if actual_tweet['parsed_text']:
                     tweets.append(actual_tweet)
             if len(tweets) > 0:
                 tweet.export_processed_tweets(file.split('.')[0], tweets, cve=None)
