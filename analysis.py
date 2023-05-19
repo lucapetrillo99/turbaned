@@ -10,6 +10,7 @@ import preprocessing
 
 from tqdm import tqdm
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor
 
 cve_regex = cve.build_regex()
@@ -133,7 +134,9 @@ def check_files(start_date, end_date):
             # check for tweets that match an end date, otherwise download tweets from the last available date to the
             # tweets with the indicated end date
             if not tweet.is_date_valid(files[len(files) - 1].split('.')[0], config.EQUAL, start_date=end_date):
-                tweet.get_tweets(datetime.strptime(files[len(files) - 1].split('.')[0], config.DATE_FORMAT), end_date)
+                new_start_date = datetime.strptime(files[len(files) - 1].split('.')[0], config.DATE_FORMAT)\
+                                 + relativedelta(days=1)
+                tweet.get_tweets(new_start_date, end_date)
                 files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
         else:
             subprocess.run(config.CLEAN_TWEETS)
