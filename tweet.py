@@ -2,8 +2,6 @@ import os
 import json
 import pickle
 import config
-import tarfile
-import requests
 import subprocess
 
 from tqdm import tqdm
@@ -11,43 +9,24 @@ from datetime import datetime
 from operator import itemgetter
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
-from concurrent.futures import ThreadPoolExecutor
 
+TWEET_URL = 'https://martellone.iit.cnr.it/index.php/s/godwgTnKeA2dxKi/download?path=%2F&files='
 TEMP_TWEET_PATH = os.path.join(config.DATA_PATH, "temp/")
 
 
 def get_tweets(initial_date, final_date):
     print("Fetching tweets online...")
-    try:
-        os.mkdir(TEMP_TWEET_PATH)
-    except FileExistsError:
-        pass
 
     if initial_date.month == final_date.month:
         monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=final_date)]
     else:
         monthly_dates = [dt for dt in
                          rrule(MONTHLY, dtstart=initial_date, until=final_date + relativedelta(months=1))]
-    with ThreadPoolExecutor() as executor:
-        for idx, date in tqdm(enumerate(monthly_dates)):
-            monthly_tweet_url = 'url' + date.strftime('%m-%Y') + '.tar.gz'
-            try:
-                response = requests.get(monthly_tweet_url, stream=True)
-                if response.status_code == 200:
-                    executor.submit(collect_tweets(date.strftime('%m-%Y'), response))
-            except ConnectionError:
-                print("Connection error while getting tweets from database. Try later")
 
-
-def collect_tweets(folder_name, response):
-    files = os.listdir(config.TWEET_PATH)
-    if folder_name not in files:
-        try:
-            file = tarfile.open(fileobj=response.raw, mode="r|gz")
-            file.extractall(path=TEMP_TWEET_PATH)
-            subprocess.run(config.COLLECT_TWEETS)
-        except ConnectionError:
-            print("Connection error while getting tweets from database. Try later")
+    for date in monthly_dates:
+        filename = date.strftime('%m-%Y') + '.tar.gz'
+        monthly_tweet_url = TWEET_URL + filename
+        subprocess.run([config.COLLECT_TWEETS, monthly_tweet_url, filename])
 
 
 def get_temp_window_files(start_date, end_date, path):
