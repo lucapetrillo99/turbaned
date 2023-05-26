@@ -124,58 +124,8 @@ def create_models(start_date, end_date):
 
     file.close()
 
-    evaluate_models(filename_chunk, print_results=True)
-
-
-def evaluate_models(f_name_chunk, print_results, dbow_model=None, dm_model=None):
-    if dbow_model is None and dm_model is None:
-        model_dbow = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DBOW_BASE.format(f_name_chunk)))
-        model_dmm = Doc2Vec.load(os.path.join(config.MODEL_PATH, config.MODEL_DM_BASE.format(f_name_chunk)))
-    else:
-        model_dbow = dbow_model
-        model_dmm = dm_model
-
-    filename = os.path.join(config.VALIDATION_DATA_PATH, f_name_chunk)
-    file = open(filename, 'rb')
-    data = pickle.load(file)
-
-    dbow_results = []
-    dm_results = []
-    dbow_scores = []
-    dm_scores = []
-
-    for d in data:
-        dbow_vector = model_dbow.infer_vector(d['parsed_text'])
-        dmm_vector = model_dmm.infer_vector(d['parsed_text'])
-
-        dbow_result = model_dbow.dv.most_similar(dbow_vector, topn=1)
-        dmm_result = model_dmm.dv.most_similar(dmm_vector, topn=1)
-
-        dbow_element = {'predicted_tweet_id': dbow_result[0][0], 'source_tag': d['tag'],
-                        'score': dbow_result[0][1]}
-        dbow_results.append(dbow_element)
-        dbow_scores.append(dbow_result[0][1])
-
-        dmm_element = {'predicted_tweet_id': dmm_result[0][0], 'source_tag': d['tag'],
-                       'score': dmm_result[0][1]}
-        dm_results.append(dmm_element)
-        dm_scores.append(dmm_result[0][1])
-
-    dbow_positives, dm_positives = get_results(f_name_chunk, dbow_results, dm_results)
-
-    if print_results:
-        print("DBOW ACCURACY: {:.1%}".format(dbow_positives / len(data)))
-        print("DM ACCURACY: {:.1%}".format(dbow_positives / len(data)))
-        print(f"DBOW POSITIVES: {dbow_positives}")
-        print(f"DM POSITIVES: {dm_positives}")
-        print(f"TOTAL: {len(data)}")
-        print(f"DBOW MEAN SCORE: {np.mean(dbow_scores)}")
-        print(f"DM MEAN SCORE: {np.mean(dm_scores)}")
-    else:
-        dbow = {"accuracy": dbow_positives / len(data), "positives": dbow_positives, "mean_score": np.mean(dbow_scores)}
-        dm = {"accuracy": dm_positives / len(data), "positives": dm_positives, "mean_score": np.mean(dm_scores)}
-
-        return dbow, dm
+    evaluate_model(filename_chunk, model_dbow, print_results=True)
+    evaluate_model(filename_chunk, model_dm, print_results=True)
 
 
 def get_results(f_chunk, dbow_results, dm_results=None):
@@ -243,10 +193,10 @@ def create_model(start_date, end_date, target_model=None):
     model.save(os.path.join(config.MODEL_PATH, config.FINAL_MODEL.format(filename_chunk)))
     file.close()
 
-    evaluate_model(filename_chunk, model)
+    evaluate_model(filename_chunk, model, print_results=True)
 
 
-def evaluate_model(f_name_chunk, model):
+def evaluate_model(f_name_chunk, model, print_results):
     try:
         filename = os.path.join(config.TEST_DATA_PATH, f_name_chunk)
         file = open(filename, 'rb')
@@ -268,10 +218,18 @@ def evaluate_model(f_name_chunk, model):
 
     positives = get_results(f_name_chunk, results)
 
-    print("MODEL ACCURACY {:.1%}".format(positives / len(data)))
-    print(f"POSITIVES: {positives}")
-    print(f"TOTAL: {len(data)}")
-    print(f"MODEL MEAN SCORE: {np.mean(scores)}")
+    if print_results:
+        if model.dbow:
+            print("DBOW ACCURACY {:.1%}".format(positives / len(data)))
+        else:
+            print("DM ACCURACY {:.1%}".format(positives / len(data)))
+
+        print(f"POSITIVES: {positives}")
+        print(f"TOTAL: {len(data)}")
+        print(f"MODEL MEAN SCORE: {np.mean(scores)}")
+    else:
+        model_results = {"accuracy": positives / len(data), "positives": positives, "mean_score": np.mean(scores)}
+        return model_results
 
 
 # search for all the most similar tweets on which the model was trained

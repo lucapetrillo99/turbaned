@@ -8,6 +8,7 @@ import config
 import itertools
 import multiprocessing
 
+from deepdiff import DeepDiff
 from gensim.models.doc2vec import Doc2Vec
 from concurrent.futures import ThreadPoolExecutor
 
@@ -88,10 +89,25 @@ def tuning_models(f_chunk):
     dbow_params, dm_params = set_parameters(f_chunk)
     dbow_results = []
     dm_results = []
+    dbow_prev_params = []
+    dm_prev_params = []
+    dbow_already_used = False
+    dm_already_used = False
     cores = multiprocessing.cpu_count()
 
-    dbow_random_choices = random.sample(dbow_params, 10)
-    dm_random_choices = random.sample(dm_params, 10)
+    dbow_random_choices = random.sample(dbow_params, 3)
+    dm_random_choices = random.sample(dm_params, 3)
+
+    dbow_params_file = os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json")
+    dm_params_file = os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dm_" + f_chunk + ".json")
+
+    if os.path.isfile(dbow_params_file):
+        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json"), "r") as f:
+            dbow_prev_params = json.load(f)
+
+    if os.path.isfile(dm_params_file):
+        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json"), "r") as f:
+            dm_prev_params = json.load(f)
 
     for dbow_param, dm_param in zip(dbow_random_choices, dm_random_choices):
         if dbow_param['hs'] == 1:
@@ -99,39 +115,72 @@ def tuning_models(f_chunk):
         if dm_param['hs'] == 1:
             dm_param['negative'] = 0
 
-        print(dbow_param, dm_param)
+        for param in dbow_prev_params:
+            if DeepDiff(param['params'], dbow_param):
+                dbow_already_used = False
+            else:
+                dbow_random_choices.remove(dbow_param)
+                dbow_random_choices.append(random.sample(dbow_params, 1))
+                dbow_already_used = True
 
-        model_dbow = Doc2Vec([x['document'] for x in train_data.values()],
-                             dm=0,
-                             vector_size=dbow_param['vector_size'],
-                             window=dbow_param['window'],
-                             epochs=dbow_param['epochs'],
-                             min_count=dbow_param['min_count'],
-                             negative=dbow_param['negative'],
-                             hs=dbow_param['hs'], workers=cores)
+        for param in dm_prev_params:
+            if DeepDiff(param['params'], dbow_param):
+                dm_already_used = False
+            else:
+                dm_random_choices.remove(dbow_param)
+                dm_random_choices.append(random.sample(dm_params, 1))
+                dm_already_used = True
 
-        model_dm = Doc2Vec([x['document'] for x in train_data.values()],
-                           dm=1,
-                           dm_mean=1,
-                           vector_size=dm_param['vector_size'],
-                           window=dm_param['window'],
-                           epochs=dm_param['epochs'],
-                           min_count=dm_param['min_count'],
-                           negative=dm_param['negative'],
-                           hs=dm_param['hs'], workers=cores)
+        if not dbow_already_used:
+            model_dbow = Doc2Vec([x['document'] for x in train_data.values()],
+                                 dm=0,
+                                 vector_size=dbow_param['vector_size'],
+                                 window=dbow_param['window'],
+                                 epochs=dbow_param['epochs'],
+                                 min_count=dbow_param['min_count'],
+                                 negative=dbow_param['negative'],
+                                 hs=dbow_param['hs'], workers=cores)
 
-        dbow, dm = model.evaluate_models(f_chunk, print_results=False, dbow_model=model_dbow, dm_model=model_dm)
-        dbow['params'] = dbow_param
-        dm['params'] = dm_param
+            dbow = model.evaluate_model(f_chunk, model_dbow, print_results=False)
+            dbow['params'] = dbow_param
+            dbow_results.append(dbow)
 
-        dbow_results.append(dbow)
-        dm_results.append(dm)
+        if not dm_already_used:
+            model_dm = Doc2Vec([x['document'] for x in train_data.values()],
+                               dm=1,
+                               dm_mean=1,
+                               vector_size=dm_param['vector_size'],
+                               window=dm_param['window'],
+                               epochs=dm_param['epochs'],
+                               min_count=dm_param['min_count'],
+                               negative=dm_param['negative'],
+                               hs=dm_param['hs'], workers=cores)
 
-        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json"), "w") as dbow_file:
-            json.dump(dbow_results, dbow_file, indent=2)
+            dm = model.evaluate_model(f_chunk, model_dm, print_results=False)
+            dm['params'] = dm_param
+            dm_results.append(dm)
 
-        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dm_" + f_chunk + ".json"), "w") as dm_file:
-            json.dump(dm_results, dm_file, indent=2)
+        dbow_file = os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json")
+        if os.path.isfile(dbow_file):
+            with open(dbow_file, "r+") as dbow_file:
+                old_data = json.load(dbow_file)
+                data = old_data + dbow_results
+                dbow_file.seek(0)
+                json.dump(data, dbow_file, indent=2)
+        else:
+            with open(dbow_file, "w") as dm_file:
+                json.dump(dbow_results, dm_file, indent=2)
+
+        dm_file = os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dm_" + f_chunk + ".json")
+        if os.path.isfile(dm_file):
+            with open(dm_file, "r+") as dbow_file:
+                old_data = json.load(dbow_file)
+                data = old_data + dm_results
+                dbow_file.seek(0)
+                json.dump(data, dbow_file, indent=2)
+        else:
+            with open(dm_file, "w") as dm_file:
+                json.dump(dm_results, dm_file, indent=2)
 
     return dbow_results, dm_results
 
@@ -139,7 +188,7 @@ def tuning_models(f_chunk):
 def hyperparameters_tuning(start, end):
     global file_chunk
     file_chunk = config.filename_chunk.format(start.strftime(config.DATE_FORMAT),
-                                                end.strftime(config.DATE_FORMAT))
+                                              end.strftime(config.DATE_FORMAT))
 
     try:
         os.mkdir(config.HYPERPARAMETERS_RESULTS_PATH)
@@ -163,5 +212,6 @@ def hyperparameters_tuning(start, end):
     with open(config.HYPERPARAMETERS_FOUND, "wb") as f:
         pickle.dump(best_res, f)
 
-    print(f"BEST DBOW ACCURACY: {dbow_res[dbow_best]['accuracy']}, PARAMS: {dbow_res[dbow_best]['params']}")
-    print(f"BEST DM ACCURACY: {dm_res[dm_best]['accuracy']}, PARAMS: {dm_res[dm_best]['params']}")
+    print("BEST DBOW ACCURACY: {:.1%}, PARAMS: {}".format(dbow_res[dbow_best]['accuracy'],
+                                                          dbow_res[dbow_best]['params']))
+    print("BEST DM ACCURACY: {:.1%}, PARAMS: {}".format(dm_res[dm_best]['accuracy'], dm_res[dm_best]['params']))
