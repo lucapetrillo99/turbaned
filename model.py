@@ -10,10 +10,8 @@ import multiprocessing
 
 from tqdm import tqdm
 from sklearn import utils
-from langdetect import detect, LangDetectException
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
-MINIMUM_SCORE = 0.85
 MAX_VALUES = 10000
 
 
@@ -245,25 +243,19 @@ def find_similarity(start_date, end_date):
         for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_PATH):
             print(file)
             for content in tqdm(tweet.import_data(config.PROCESSED_TWEET_PATH, file)):
-                try:
-                    language = detect(" ".join(content['parsed_text']))
-                    if language == 'en':
-                        infer_vector = model.infer_vector(content['parsed_text'])
-                        model_result = model.dv.most_similar(infer_vector, topn=1)
+                infer_vector = model.infer_vector(content['parsed_text'])
+                model_result = model.dv.most_similar(infer_vector, topn=1)
 
-                        # select all tweets above a threshold
-                        if model_result[0][1] >= MINIMUM_SCORE:
-                            result = {'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
-                                      'predicted_tweet': model_result[0][0],
-                                      'score': model_result[0][1]}
-                            results.append(result)
+                # select all tweets above a threshold
+                if model_result[0][1] >= config.MINIMUM_SCORE:
+                    result = {'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
+                              'predicted_tweet': model_result[0][0],
+                              'score': model_result[0][1]}
+                    results.append(result)
 
-                except LangDetectException:
-                    pass
-
-                if len(results) >= MAX_VALUES:
-                    export_results(results, filename_chunk)
-                    results = []
+            if len(results) >= MAX_VALUES:
+                export_results(results, filename_chunk)
+                results = []
 
         if len(results) > 0:
             export_results(results, filename_chunk)

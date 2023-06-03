@@ -64,6 +64,7 @@ common_kwargs = dict(
 )
 HYPERPARAMETERS_FILE = os.path.join('utils', 'hyperparameters.json')
 HYPERPARAMETERS_FOUND = os.path.join(MODEL_PATH, 'hyperparameters')
+MINIMUM_SCORE = 0.85
 
 # MODELS NAME
 filename_chunk = "{0}_{1}"
