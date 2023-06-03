@@ -122,8 +122,8 @@ def create_models(start_date, end_date):
 
     file.close()
 
-    evaluate_model(filename_chunk, model_dbow, print_results=True)
-    evaluate_model(filename_chunk, model_dm, print_results=True)
+    evaluate_model(filename_chunk, model_dbow, validation=True, print_results=True)
+    evaluate_model(filename_chunk, model_dm, validation=True, print_results=True)
 
 
 def get_results(f_chunk, dbow_results, dm_results=None):
@@ -191,17 +191,27 @@ def create_model(start_date, end_date, target_model=None):
     model.save(os.path.join(config.MODEL_PATH, config.FINAL_MODEL.format(filename_chunk)))
     file.close()
 
-    evaluate_model(filename_chunk, model, print_results=True)
+    evaluate_model(filename_chunk, model, validation=False, print_results=True)
 
 
-def evaluate_model(f_name_chunk, model, print_results):
-    try:
-        filename = os.path.join(config.TEST_DATA_PATH, f_name_chunk)
-        file = open(filename, 'rb')
-        data = pickle.load(file)
-    except FileNotFoundError as e:
-        print(e)
-        exit(0)
+def evaluate_model(f_name_chunk, model, validation, print_results):
+
+    if validation:
+        try:
+            filename = os.path.join(config.VALIDATION_DATA_PATH, f_name_chunk)
+            file = open(filename, 'rb')
+            data = pickle.load(file)
+        except FileNotFoundError as e:
+            print(e)
+            exit(0)
+    else:
+        try:
+            filename = os.path.join(config.TEST_DATA_PATH, f_name_chunk)
+            file = open(filename, 'rb')
+            data = pickle.load(file)
+        except FileNotFoundError as e:
+            print(e)
+            exit(0)
 
     results = []
     scores = []

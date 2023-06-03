@@ -141,7 +141,7 @@ def tuning_models(f_chunk):
                                  negative=dbow_param['negative'],
                                  hs=dbow_param['hs'], workers=cores)
 
-            dbow = model.evaluate_model(f_chunk, model_dbow, print_results=False)
+            dbow = model.evaluate_model(f_chunk, model_dbow, validation=True, print_results=False)
             dbow['params'] = dbow_param
             dbow_results.append(dbow)
 
@@ -156,7 +156,7 @@ def tuning_models(f_chunk):
                                negative=dm_param['negative'],
                                hs=dm_param['hs'], workers=cores)
 
-            dm = model.evaluate_model(f_chunk, model_dm, print_results=False)
+            dm = model.evaluate_model(f_chunk, model_dm, validation=True, print_results=False)
             dm['params'] = dm_param
             dm_results.append(dm)
 
