@@ -109,7 +109,6 @@ def get_tweets_with_cve(start_date, end_date):
             preprocessing.preprocess_tweets_cve(start_date, end_date)
             preprocessing.preprocess_cves()
             model.create_models(start_date, end_date)
-            # model.find_similarity(start_date)
         else:
             current_date = datetime.now()
             print('No cve founds in tweets from {} to {}'.format(start_date.strftime(config.DATE_FORMAT),

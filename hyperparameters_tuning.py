@@ -8,7 +8,6 @@ import config
 import itertools
 import multiprocessing
 
-from deepdiff import DeepDiff
 from gensim.models.doc2vec import Doc2Vec
 from concurrent.futures import ThreadPoolExecutor
 
@@ -116,7 +115,7 @@ def tuning_models(f_chunk):
             dm_param['negative'] = 0
 
         for param in dbow_prev_params:
-            if DeepDiff(param['params'], dbow_param):
+            if param['params'] != dbow_param:
                 dbow_already_used = False
             else:
                 dbow_random_choices.remove(dbow_param)
@@ -124,7 +123,7 @@ def tuning_models(f_chunk):
                 dbow_already_used = True
 
         for param in dm_prev_params:
-            if DeepDiff(param['params'], dbow_param):
+            if param['params'] != dm_param:
                 dm_already_used = False
             else:
                 dm_random_choices.remove(dbow_param)
