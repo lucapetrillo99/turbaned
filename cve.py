@@ -3,9 +3,10 @@ import pickle
 import nvdlib
 import config
 
-from retry import retry
 from tqdm import tqdm
+from retry import retry
 from datetime import datetime
+from dotenv import load_dotenv
 from requests import HTTPError
 from concurrent.futures import ThreadPoolExecutor
 
@@ -32,11 +33,19 @@ def retrieve_cves(start_date, end_date, cves=None):
         f = open(config.CVE_REFERENCES_PATH + filename, 'rb')
         cves = pickle.load(f)
 
+    nvd_api_key = None
+    if load_dotenv(config.ENV_FILE):
+        nvd_api_key = os.environ.get("API_KEY")
+
     with ThreadPoolExecutor() as executor:
         for cve_id in tqdm(cves):
             if cve_id not in files:
                 try:
-                    result = nvdlib.searchCVE(cveId=cve_id)
+                    if nvd_api_key:
+                        result = nvdlib.searchCVE(cveId=cve_id, key=nvd_api_key)
+                    else:
+                        result = nvdlib.searchCVE(cveId=cve_id)
+
                     if result:
                         executor.submit(collect_cve, result[0])
                     else:

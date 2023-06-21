@@ -30,6 +30,7 @@ VALIDATION_DATA_PATH = os.path.join(MODEL_DATA_PATH, 'validation/')
 MODEL_PATH = os.path.join(MODEL_DATA_PATH, 'model/')
 HYPERPARAMETERS_RESULTS_PATH = os.path.join(MODEL_DATA_PATH, 'hyperparameter_results/')
 RESULTS_PATH = os.path.join(DATA_PATH, 'results/')
+ENV_FILE = ".env"
 
 # SCRIPT FILES
 CLEAN_DATA = os.path.join('utils', 'clean_data.sh')

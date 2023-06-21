@@ -6,6 +6,7 @@ import subprocess
 
 from tqdm import tqdm
 from datetime import datetime
+from dotenv import load_dotenv
 from operator import itemgetter
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
@@ -16,6 +17,10 @@ TEMP_TWEET_PATH = os.path.join(config.DATA_PATH, "temp/")
 def get_tweets(initial_date, final_date):
     print("Fetching tweets online...")
 
+    if not load_dotenv(config.ENV_FILE):
+        print("Url to retrieve tweets not found")
+        exit(0)
+
     # all months between the dates entered are extracted
     if initial_date.month == final_date.month:
         monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=final_date)]
@@ -23,10 +28,15 @@ def get_tweets(initial_date, final_date):
         monthly_dates = [dt for dt in
                          rrule(MONTHLY, dtstart=initial_date, until=final_date + relativedelta(months=1))]
 
-    for date in monthly_dates:
-        filename = date.strftime('%m-%Y') + '.tar.gz'
-        monthly_tweet_url = "url" + filename
-        subprocess.run([config.COLLECT_TWEETS, monthly_tweet_url, filename])
+    url = os.environ.get("TWEET_URL")
+    if url:
+        for date in monthly_dates:
+            filename = date.strftime('%m-%Y') + '.tar.gz'
+            monthly_tweet_url = "url" + filename
+            subprocess.run([config.COLLECT_TWEETS, monthly_tweet_url, filename])
+    else:
+        print("Url to retrieve tweets not found")
+        exit(0)
 
 
 # function that returns all tweets corresponding to a start and end date
