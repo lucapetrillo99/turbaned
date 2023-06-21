@@ -35,24 +35,19 @@ def check_inserted_dates(inserted_dates):
 
 
 def set_script_folders():
-    if not (os.path.exists(config.DATA_PATH)):
-        try:
-            os.mkdir(config.DATA_PATH)
-            os.mkdir(config.CVE_PATH)
-            os.mkdir(config.TWEET_PATH)
-            os.mkdir(config.FILTERED_TWEET_PATH)
-            os.mkdir(config.CVE_REFERENCES_PATH)
-            os.makedirs(config.PROCESSED_CVE_PATH)
-            os.makedirs(config.PROCESSED_TWEET_PATH)
-            os.makedirs(config.PROCESSED_TWEET_CVE_PATH)
-            os.mkdir(config.MODEL_DATA_PATH)
-            os.makedirs(config.TRAIN_DATA_PATH)
-            os.makedirs(config.TEST_DATA_PATH)
-            os.makedirs(config.VALIDATION_DATA_PATH)
-            os.makedirs(config.MODEL_PATH)
-            os.mkdir(config.RESULTS_PATH)
-        except FileExistsError:
-            pass
+    os.makedirs(config.DATA_PATH, exist_ok=True)
+    os.makedirs(config.CVE_PATH, exist_ok=True)
+    os.makedirs(config.TWEET_PATH, exist_ok=True)
+    os.makedirs(config.FILTERED_TWEET_PATH, exist_ok=True)
+    os.makedirs(config.CVE_REFERENCES_PATH, exist_ok=True)
+    os.makedirs(config.PROCESSED_CVE_PATH, exist_ok=True)
+    os.makedirs(config.PROCESSED_TWEET_PATH, exist_ok=True)
+    os.makedirs(config.PROCESSED_TWEET_CVE_PATH, exist_ok=True)
+    os.makedirs(config.TRAIN_DATA_PATH, exist_ok=True)
+    os.makedirs(config.TEST_DATA_PATH, exist_ok=True)
+    os.makedirs(config.VALIDATION_DATA_PATH, exist_ok=True)
+    os.makedirs(config.MODEL_PATH, exist_ok=True)
+    os.makedirs(config.RESULTS_PATH, exist_ok=True)
 
 
 def set_parser():

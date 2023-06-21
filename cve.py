@@ -100,8 +100,8 @@ def export_processed_cve(filename, cve):
         pickle.dump(cve, f)
 
 
-# Method for constructing a regex to find a format of the type CVE-YEAR-ID (e.g., CVE-2022-1536) in tweets.
-# Constructs a regex in which the maximum year is never greater than the actual year.
+# method for constructing a regex to find a format of the type CVE-YEAR-ID (e.g., CVE-2022-1536) in tweets.
+# constructs a regex in which the maximum year is never greater than the actual year.
 def build_regex():
     actual_year = [*datetime.now().strftime("%Y")]
     cve_regex = r"CVE[\-—–]"
