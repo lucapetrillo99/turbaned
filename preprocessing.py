@@ -12,7 +12,6 @@ from nltk.tokenize import TweetTokenizer
 from concurrent.futures import ThreadPoolExecutor
 from langdetect import detect, LangDetectException
 
-MAX_TWEET = 1000
 URL_REGEX = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*,]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 w_tokenizer = TweetTokenizer()
 cve_regex = cve.build_regex()
@@ -38,7 +37,7 @@ def preprocess_tweets(start_date, end_date):
     print('Cleaning text of tweets...')
     tweets = []
     tweet_files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)
-    tweet_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], '%d-%m-%Y'))
+    tweet_files.sort(key=lambda date: datetime.strptime(date.split('.')[0], config.DATE_FORMAT))
     with ThreadPoolExecutor() as pool:
         for file in tweet_files:
             print(file)

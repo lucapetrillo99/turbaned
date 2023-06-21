@@ -12,8 +12,6 @@ from tqdm import tqdm
 from sklearn import utils
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
-MAX_VALUES = 10000
-
 
 def check_results(start_date, end_date):
     results = os.listdir(config.RESULTS_PATH)
@@ -109,7 +107,7 @@ def create_models(start_date, end_date):
 
     model_dbow.build_vocab([x['document'] for x in train_data.values()])
 
-    # save some time by copying the vocabulary structures from the DBOW model to the DM model
+    # copy the vocabulary structures from the DBOW model to the DM model
     model_dm.reset_from(model_dbow)
 
     model_dbow.train([x['document'] for x in train_data.values()], total_examples=model_dbow.corpus_count,
@@ -174,7 +172,7 @@ def create_model(start_date, end_date, target_model=None):
             model = Doc2Vec(dm=1, dm_mean=1, workers=cores, **config.common_kwargs)
     else:
         try:
-            with open(config.HYPERPARAMETERS_FOUND, "rb") as f:
+            with open(config.HYPERPARAMETERS_FOUND, 'rb') as f:
                 results = pickle.load(f)
 
             if results['model'] == 'dbow':
@@ -263,10 +261,6 @@ def find_similarity(start_date, end_date):
                               'score': model_result[0][1]}
                     results.append(result)
 
-            if len(results) >= MAX_VALUES:
-                export_results(results, filename_chunk)
-                results = []
-
         if len(results) > 0:
             export_results(results, filename_chunk)
 
@@ -297,6 +291,7 @@ def export_results(results, filename_chunk):
         else:
             result['predicted_tweet'] = cve.import_cve_data(config.PROCESSED_CVE_PATH, predicted_tweet['file'])
             del result['predicted_tweet']['parsed_text']
+            result['predicted_cve'] = result.pop('predicted_tweet')
 
     filename = os.path.join(config.RESULTS_PATH, filename_chunk + '.json')
     if os.path.exists(filename):

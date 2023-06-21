@@ -16,6 +16,7 @@ val_data = []
 file_chunk = None
 
 
+# creation of all possible combinations of parameters in the file "utils/hyperparameters.json"
 def set_parameters(f_chunk):
     global train_data, val_data
 
@@ -84,6 +85,7 @@ def set_parameters(f_chunk):
         exit(0)
 
 
+# function that samples "n" random combinations and performs hyperparameter tuning of the two models
 def tuning_models(f_chunk):
     dbow_params, dm_params = set_parameters(f_chunk)
     dbow_results = []
@@ -94,18 +96,18 @@ def tuning_models(f_chunk):
     dm_already_used = False
     cores = multiprocessing.cpu_count()
 
-    dbow_random_choices = random.sample(dbow_params, 3)
-    dm_random_choices = random.sample(dm_params, 3)
+    dbow_random_choices = random.sample(dbow_params, config.COMBINATIONS_NUMBER)
+    dm_random_choices = random.sample(dm_params, config.COMBINATIONS_NUMBER)
 
     dbow_params_file = os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json")
     dm_params_file = os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dm_" + f_chunk + ".json")
 
     if os.path.isfile(dbow_params_file):
-        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json"), "r") as f:
+        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json"), 'r') as f:
             dbow_prev_params = json.load(f)
 
     if os.path.isfile(dm_params_file):
-        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json"), "r") as f:
+        with open(os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json"), 'r') as f:
             dm_prev_params = json.load(f)
 
     for dbow_param, dm_param in zip(dbow_random_choices, dm_random_choices):
@@ -114,6 +116,7 @@ def tuning_models(f_chunk):
         if dm_param['hs'] == 1:
             dm_param['negative'] = 0
 
+        # checks that the current combination of hyperparameters has not already been used
         for param in dbow_prev_params:
             if param['params'] != dbow_param:
                 dbow_already_used = False
@@ -159,26 +162,27 @@ def tuning_models(f_chunk):
             dm['params'] = dm_param
             dm_results.append(dm)
 
+        # saves the combination of hyperparameters and its result
         dbow_file = os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dbow_" + f_chunk + ".json")
         if os.path.isfile(dbow_file):
-            with open(dbow_file, "r+") as dbow_file:
+            with open(dbow_file, 'r+') as dbow_file:
                 old_data = json.load(dbow_file)
                 data = old_data + dbow_results
                 dbow_file.seek(0)
                 json.dump(data, dbow_file, indent=2)
         else:
-            with open(dbow_file, "w") as dm_file:
+            with open(dbow_file, 'w') as dm_file:
                 json.dump(dbow_results, dm_file, indent=2)
 
         dm_file = os.path.join(config.HYPERPARAMETERS_RESULTS_PATH, "dm_" + f_chunk + ".json")
         if os.path.isfile(dm_file):
-            with open(dm_file, "r+") as dbow_file:
+            with open(dm_file, 'r+') as dbow_file:
                 old_data = json.load(dbow_file)
                 data = old_data + dm_results
                 dbow_file.seek(0)
                 json.dump(data, dbow_file, indent=2)
         else:
-            with open(dm_file, "w") as dm_file:
+            with open(dm_file, 'w') as dm_file:
                 json.dump(dm_results, dm_file, indent=2)
 
     return dbow_results, dm_results
@@ -208,7 +212,7 @@ def hyperparameters_tuning(start, end):
         best_res['model'] = 'dm'
         best_res['params'] = dm_res[dm_best]['params']
 
-    with open(config.HYPERPARAMETERS_FOUND, "wb") as f:
+    with open(config.HYPERPARAMETERS_FOUND, 'wb') as f:
         pickle.dump(best_res, f)
 
     print("BEST DBOW ACCURACY: {:.1%}, PARAMS: {}".format(dbow_res[dbow_best]['accuracy'],

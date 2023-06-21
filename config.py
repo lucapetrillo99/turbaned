@@ -37,7 +37,6 @@ CLEAN_PROCESSED_DATA = os.path.join('utils', 'clean_processed_data.sh')
 CLEAN_TWEETS = os.path.join('utils', 'clean_tweets.sh')
 COLLECT_TWEETS = os.path.join('utils', 'collect_tweets.sh')
 
-
 # SCRIPT DATA
 DATE_FORMAT = '%d-%m-%Y'
 
@@ -59,9 +58,8 @@ INCLUDED = 2
 EQUAL = 3
 
 # MODELS DATA
-common_kwargs = dict(
-    vector_size=50, negative=5, hs=0, epochs=15, min_count=5
-)
+common_kwargs = dict(vector_size=50, negative=5, hs=0, epochs=15, min_count=5)
+COMBINATIONS_NUMBER = 10
 HYPERPARAMETERS_FILE = os.path.join('utils', 'hyperparameters.json')
 HYPERPARAMETERS_FOUND = os.path.join(MODEL_PATH, 'hyperparameters')
 MINIMUM_SCORE = 0.85

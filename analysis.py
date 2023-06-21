@@ -87,6 +87,8 @@ def get_tweets_with_cve(start_date, end_date):
         with ThreadPoolExecutor() as pool:
             for f in files:
                 for index, t in enumerate(tqdm(tweet.import_local_tweets(f))):
+
+                    # check if tweet contains the keyword: CVE-ID (eg. CVE-2022-1536)
                     result = re.findall(cve_regex, t['text'], re.I)
                     if len(result) == 1:
                         if result[0] not in cve_ref:
@@ -133,7 +135,7 @@ def check_files(start_date, end_date):
             # check for tweets that match an end date, otherwise download tweets from the last available date to the
             # tweets with the indicated end date
             if not tweet.is_date_valid(files[len(files) - 1].split('.')[0], config.EQUAL, start_date=end_date):
-                new_start_date = datetime.strptime(files[len(files) - 1].split('.')[0], config.DATE_FORMAT)\
+                new_start_date = datetime.strptime(files[len(files) - 1].split('.')[0], config.DATE_FORMAT) \
                                  + relativedelta(days=1)
                 tweet.get_tweets(new_start_date, end_date)
                 files = tweet.get_temp_window_files(start_date, end_date, config.TWEET_PATH)

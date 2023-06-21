@@ -10,13 +10,13 @@ from operator import itemgetter
 from dateutil.rrule import rrule, MONTHLY
 from dateutil.relativedelta import relativedelta
 
-TWEET_URL = 'https://martellone.iit.cnr.it/index.php/s/godwgTnKeA2dxKi/download?path=%2F&files='
 TEMP_TWEET_PATH = os.path.join(config.DATA_PATH, "temp/")
 
 
 def get_tweets(initial_date, final_date):
     print("Fetching tweets online...")
 
+    # all months between the dates entered are extracted
     if initial_date.month == final_date.month:
         monthly_dates = [dt for dt in rrule(MONTHLY, dtstart=initial_date, until=final_date)]
     else:
@@ -25,10 +25,11 @@ def get_tweets(initial_date, final_date):
 
     for date in monthly_dates:
         filename = date.strftime('%m-%Y') + '.tar.gz'
-        monthly_tweet_url = TWEET_URL + filename
+        monthly_tweet_url = "url" + filename
         subprocess.run([config.COLLECT_TWEETS, monthly_tweet_url, filename])
 
 
+# function that returns all tweets corresponding to a start and end date
 def get_temp_window_files(start_date, end_date, path):
     tweets_directory = os.listdir(path)
     tweets_directory.sort(key=lambda filename: datetime.strptime(filename.split(".")[0], config.DATE_FORMAT))
@@ -61,14 +62,14 @@ def export_filtered_tweets(filename, filtered_tweets):
     files = os.listdir(config.FILTERED_TWEET_PATH)
 
     if filename not in files:
-        with open(config.FILTERED_TWEET_PATH + filename, "wb") as f:
+        with open(config.FILTERED_TWEET_PATH + filename, 'wb') as f:
             pickle.dump(filtered_tweets, f)
     else:
-        with open(config.FILTERED_TWEET_PATH + filename, "rb") as f:
+        with open(config.FILTERED_TWEET_PATH + filename, 'rb') as f:
             data = pickle.load(f)
             if filtered_tweets[0]['id'] not in map(itemgetter('id'), data):
                 data += filtered_tweets
-                file = open(config.FILTERED_TWEET_PATH + filename, "wb")
+                file = open(config.FILTERED_TWEET_PATH + filename, 'wb')
                 pickle.dump(data, file)
 
 
@@ -91,7 +92,7 @@ def check_files_dates(start_date, end_date, files_path):
 
 
 def import_local_tweets(filename):
-    with open(os.path.join(config.TWEET_PATH, filename), "rb") as fp:
+    with open(os.path.join(config.TWEET_PATH, filename), 'rb') as fp:
         return json.load(fp)
 
 
@@ -102,13 +103,14 @@ def import_data(path, filename):
 
 def export_processed_tweets(filename, processed_tweets, cve=None):
     if cve is not None:
-        with open(config.PROCESSED_TWEET_CVE_PATH + str(filename), "wb") as file:
+        with open(config.PROCESSED_TWEET_CVE_PATH + str(filename), 'wb') as file:
             pickle.dump(processed_tweets, file)
     else:
         with open(config.PROCESSED_TWEET_PATH + str(filename), mode='wb') as f:
             pickle.dump(processed_tweets, f)
 
 
+# aggregates together all indexes of tweets belonging to the same file
 def reorder_tweets(tweets_found):
     res = {}
     for tweet in tweets_found:
@@ -120,15 +122,16 @@ def reorder_tweets(tweets_found):
     return res
 
 
+# function that removes all tweets that have a cve through the index
 def remove_tweets_with_cve(tweets):
     print("Removing found tweets...")
     for filename, tweet_indexes in tqdm(reorder_tweets(tweets).items()):
         tweet_indexes = sorted(tweet_indexes, reverse=True)
-        file = open(config.TWEET_PATH + filename, "r")
+        file = open(config.TWEET_PATH + filename, 'r')
         data = json.load(file)
         for index in tweet_indexes:
             if index < len(data):
                 data.pop(index)
 
-        with open(config.TWEET_PATH + filename, "w") as f:
+        with open(config.TWEET_PATH + filename, 'w') as f:
             f.write(json.dumps(data))

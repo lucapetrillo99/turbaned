@@ -9,8 +9,6 @@ from datetime import datetime
 from requests import HTTPError
 from concurrent.futures import ThreadPoolExecutor
 
-MINIMUM_SCORE = 6.9
-
 
 def check_processed_cves():
     cves = os.listdir(config.PROCESSED_CVE_PATH)
