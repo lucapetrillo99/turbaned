@@ -60,6 +60,7 @@ EQUAL = 3
 # MODELS DATA
 common_kwargs = dict(vector_size=50, negative=5, hs=0, epochs=15, min_count=5)
 COMBINATIONS_NUMBER = 10
+MINIMUM_TWEET_LEN = 5
 HYPERPARAMETERS_FILE = os.path.join('utils', 'hyperparameters.json')
 HYPERPARAMETERS_FOUND = os.path.join(MODEL_PATH, 'hyperparameters')
 MINIMUM_SCORE = 0.85

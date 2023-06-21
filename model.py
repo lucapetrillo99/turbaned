@@ -251,15 +251,18 @@ def find_similarity(start_date, end_date):
         for file in tweet.get_temp_window_files(start_date, end_date, config.PROCESSED_TWEET_PATH):
             print(file)
             for content in tqdm(tweet.import_data(config.PROCESSED_TWEET_PATH, file)):
-                infer_vector = model.infer_vector(content['parsed_text'])
-                model_result = model.dv.most_similar(infer_vector, topn=1)
 
-                # select all tweets above a threshold
-                if model_result[0][1] >= config.MINIMUM_SCORE:
-                    result = {'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
-                              'predicted_tweet': model_result[0][0],
-                              'score': model_result[0][1]}
-                    results.append(result)
+                # only tweets with a minimum word length evaluated
+                if len(content['parsed_text']) >= config.MINIMUM_TWEET_LEN:
+                    infer_vector = model.infer_vector(content['parsed_text'])
+                    model_result = model.dv.most_similar(infer_vector, topn=1)
+
+                    # select all tweets above a threshold
+                    if model_result[0][1] >= config.MINIMUM_SCORE:
+                        result = {'target_tweet': tweet.import_local_tweets(content['file'])[content['index']],
+                                  'predicted_tweet': model_result[0][0],
+                                  'score': model_result[0][1]}
+                        results.append(result)
 
         if len(results) > 0:
             export_results(results, filename_chunk)
