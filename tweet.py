@@ -32,7 +32,7 @@ def get_tweets(initial_date, final_date):
     if url:
         for date in monthly_dates:
             filename = date.strftime('%m-%Y') + '.tar.gz'
-            monthly_tweet_url = "url" + filename
+            monthly_tweet_url = url + filename
             subprocess.run([config.COLLECT_TWEETS, monthly_tweet_url, filename])
     else:
         print("Url to retrieve tweets not found")
