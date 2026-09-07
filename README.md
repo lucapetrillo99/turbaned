@@ -112,7 +112,7 @@ common_kwargs = dict(vector_size=50, negative=5, hs=0, epochs=15, min_count=5)
 
 At this stage, hyperparameters tuning can be carried out and the model with the best combination of hyperparameters can be created. Alternatively with the `--model` parameter it is possible to specify which model to create.
 
-To change the hyperparameters to be tested during this step, you can consult the `utils/hyperparameters.json` hyperparameters.json file.
+To change the hyperparameters to be tested during this step, you can consult the `utils/hyperparameters.json` file.
 
 ```
 models management:
